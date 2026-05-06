@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A single financial transaction",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "number", "description": "Timestamp in milliseconds" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense", "transfer"] },
+        "category": { "type": "string" },
+        "account": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "description", "date", "amount", "type", "category", "createdAt"]
+    },
+    "MonthlyBudget": {
+      "title": "Monthly Budget",
+      "description": "Monthly budget settings and summary",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "year": { "type": "number" },
+        "month": { "type": "number" },
+        "expectedSalary": { "type": "number" },
+        "fixedBills": { "type": "number" },
+        "reserve": { "type": "number" },
+        "reserveOfReserve": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "year", "month"]
+    }
+  },
+  "firestore": {
+    "transactions": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Stores user transactions"
+    },
+    "monthly_budgets": {
+      "schema": { "$ref": "#/entities/MonthlyBudget" },
+      "description": "Stores monthly budget tracking"
+    }
+  }
+}

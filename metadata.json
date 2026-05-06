@@ -1,0 +1,5 @@
+{
+  "name": "FinanceTracker",
+  "description": "Personal finance tracker with Telegram integration support.",
+  "requestFramePermissions": []
+}

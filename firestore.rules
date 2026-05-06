@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['userId', 'description', 'date', 'amount', 'type', 'category', 'createdAt'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.description is string && data.description.size() <= 200
+        && data.date is number
+        && data.amount is number
+        && data.type is string && data.type in ['income', 'expense', 'transfer']
+        && data.category is string && data.category.size() <= 100
+        && data.createdAt is number
+        && (data.get('account', '') is string && data.get('account', '').size() <= 100)
+        && (data.get('paymentMethod', '') is string && data.get('paymentMethod', '').size() <= 50)
+        && (data.get('card', '') is string && data.get('card', '').size() <= 100)
+        && (data.get('installments', 1) is number)
+        && (data.get('installmentNumber', 1) is number)
+        && (data.get('groupId', '') is string && data.get('groupId', '').size() <= 128);
+    }
+
+    match /user_settings/{docId} {
+      allow create, update: if isSignedIn()
+        && docId == request.auth.uid
+        && incoming().userId == request.auth.uid;
+      allow get: if true; // Allow server to fetch by UUID capability
+    }
+
+    match /telegram_users/{docId} {
+      allow read, write: if true;
+    }
+
+    match /inbox/{docId} {
+      allow create: if true;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get, list: if true;
+    }
+    
+    match /transactions/{transactionId} {
+      allow create: if isSignedIn()
+        && isValidId(transactionId)
+        && isValidTransaction(incoming());
+      
+      allow update: if isSignedIn()
+        && isValidId(transactionId)
+        && existing().userId == request.auth.uid
+        && isValidTransaction(incoming())
+        && incoming().userId == existing().userId;
+      
+      allow delete: if isSignedIn()
+        && isValidId(transactionId)
+        && existing().userId == request.auth.uid;
+      
+      allow get: if true;
+      allow list: if true; // Allow server to fetch recent context
+    }
+
+    function isValidBudget(data) {
+      return data.keys().hasAll(['userId', 'year', 'month'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.year is number
+        && data.month is number
+        && (data.get('salary', 0) is number)
+        && (data.get('reserve', 0) is number)
+        && (data.get('reserveOfReserve', 0) is number)
+        && (data.get('wallet', 0) is number)
+        && (data.get('walletWithdrawals', 0) is number)
+        && (data.get('emergencyWithdrawals', 0) is number)
+        && (data.get('updatedAt', 0) is number);
+    }
+
+    match /monthly_budgets/{budgetId} {
+      allow create: if isSignedIn()
+        && isValidId(budgetId)
+        && isValidBudget(incoming());
+      
+      allow update: if isSignedIn()
+        && isValidId(budgetId)
+        && existing().userId == request.auth.uid
+        && isValidBudget(incoming())
+        && incoming().userId == existing().userId;
+      
+      allow delete: if isSignedIn()
+        && isValidId(budgetId)
+        && existing().userId == request.auth.uid;
+        
+      allow get: if true;
+        
+      allow list: if true;
+    }
+  }
+}
