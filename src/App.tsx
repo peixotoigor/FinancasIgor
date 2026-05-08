@@ -11,7 +11,6 @@ import { TransactionsTab } from './components/TransactionsTab';
 import { ReservesTab } from './components/ReservesTab';
 import { IntegrationTab } from './components/IntegrationTab';
 import { QuickAddTransaction } from './components/QuickAddTransaction';
-import { MobileFAB } from './components/MobileFAB';
 import { MonthYearPicker } from './components/MonthYearPicker';
 import type { MonthlyBudget, UserSettings } from './types';
 
@@ -323,65 +322,44 @@ function Dashboard({ user }: { user: User }) {
       </nav>
 
       <main className="flex-1 flex flex-col gap-6 p-4 md:p-8 lg:p-10 overflow-y-auto w-full">
-        <header className="flex flex-col md:flex-row justify-between items-start gap-4 shrink-0 relative z-10 w-full mb-2">
-           <div className="flex flex-col gap-3 w-full md:w-auto mt-2 md:mt-0">
-              <div className="flex justify-between items-center w-full md:w-auto">
-                <h1 className="text-xl md:text-2xl tracking-tight text-gray-900 dark:text-white font-bold flex items-center gap-3">
-                   <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse hidden md:block"></span>
-                   {activeTab === 'dashboard' ? 'Visão Geral' : 
-                    activeTab === 'transactions' ? 'Transações' : 
-                    activeTab === 'reserves' ? 'Reservas' : 
-                    activeTab === 'analysis' ? 'Análise' : 
-                    activeTab === 'integration' ? 'Integração' : 'Configurações'}
-                </h1>
-                
-                <div className="flex md:hidden items-center gap-2">
-                   <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition rounded-full hover:bg-gray-200 dark:hover:bg-white/10" title="Alternar Tema">
-                      {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                   </button>
-                   <button onClick={() => signOut(auth)} className="p-2 text-gray-500 hover:text-red-500 transition rounded-full hover:bg-red-50 dark:hover:bg-red-500/10" title="Sair">
-                      <LogOut className="w-5 h-5" />
-                   </button>      
-                </div>
-              </div>
+        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 shrink-0 relative z-10 w-full mb-2">
+           <div className="flex justify-between items-center w-full md:w-auto">
+             <h1 className="text-xl md:text-2xl tracking-tight text-gray-900 dark:text-white font-bold flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse hidden md:block"></span>
+                {activeTab === 'dashboard' ? 'Visão Geral' : 
+                 activeTab === 'transactions' ? 'Transações' : 
+                 activeTab === 'reserves' ? 'Reservas' : 
+                 activeTab === 'analysis' ? 'Análise' : 
+                 activeTab === 'integration' ? 'Integração' : 'Configurações'}
+             </h1>
+             
+             <div className="flex md:hidden items-center gap-2">
+                <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition rounded-full hover:bg-gray-200 dark:hover:bg-white/10" title="Alternar Tema">
+                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
+                <button onClick={() => signOut(auth)} className="p-2 text-gray-500 hover:text-red-500 transition rounded-full hover:bg-red-50 dark:hover:bg-red-500/10" title="Sair">
+                   <LogOut className="w-5 h-5" />
+                </button>      
+             </div>
+           </div>
 
-              <div className="flex md:hidden items-center">
-                 {/* Action button - only on mobile, below Visão Geral */}
-                 <button onClick={() => { setTxInitialType('expense'); setIsModalOpen(true); }} className="w-full flex justify-center bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-400 transition items-center gap-2 shadow-sm whitespace-nowrap active:scale-95">
-                    <Plus className="w-4 h-4" /> 
-                    <span>Nova Transação</span>
-                 </button>
-              </div>
-
+           <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
               <MonthYearPicker 
                 currentMonth={currentMonth} 
                 currentYear={currentYear} 
                 onMonthChange={setCurrentMonth} 
                 onYearChange={setCurrentYear} 
               />
-           </div>
-           
-           <div className="w-full md:w-auto flex justify-between sm:justify-end items-center gap-3 self-center sm:self-start md:self-center mt-2 md:mt-0">
-              <div className="flex items-center gap-3">
-                 <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-xl text-[10px] uppercase tracking-widest font-bold shadow-sm" title={Object.values(syncState).some(Boolean) ? "Sincronizando..." : "Sincronizado"}>
-                   {Object.values(syncState).some(Boolean) ? (
-                       <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
-                   ) : (
-                       <Cloud className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                   )}
-                 </div>
-              </div>
 
-              {/* Action button - removed for web version as requested */}
-              {/* <button onClick={() => { setTxInitialType('expense'); setIsModalOpen(true); }} className="hidden md:flex bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-400 transition items-center gap-2 shadow-sm whitespace-nowrap group active:scale-95 ml-auto">
-                 <Plus className="w-4 h-4 transition-transform group-hover:scale-110" /> 
-                 <span>Nova Transação</span>
-              </button> */}
+              <div className="flex items-center justify-center px-3 py-2 bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-xl shadow-sm h-[40px] sm:h-[42px] transition-colors" title={Object.values(syncState).some(Boolean) ? "Sincronizando..." : "Sincronizado"}>
+                {Object.values(syncState).some(Boolean) ? (
+                    <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin" />
+                ) : (
+                    <Cloud className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                )}
+              </div>
            </div>
         </header>
-
-        {/* Mobile FAB */}
-        <MobileFAB onAddTransaction={(type) => { setTxInitialType(type); setIsModalOpen(true); }} />
 
         <div className="flex-1 flex flex-col gap-6 mt-4 md:mt-6 pb-20 md:pb-0">
            {activeTab === 'dashboard' && (

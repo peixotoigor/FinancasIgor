@@ -294,75 +294,82 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
           >
             <RefreshCw className={`w-5 h-5 text-emerald-500 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullY * 3}deg)` }} />
           </div>
-          <table 
-            className={`w-full text-left text-sm whitespace-nowrap ${!isPulling ? 'transition-transform duration-200' : ''}`}
+          <div 
+            className={`w-full flex-1 flex flex-col p-2 sm:p-4 gap-1 ${!isPulling ? 'transition-transform duration-200' : ''}`}
             style={{ transform: `translateY(${pullY}px)` }}
           >
-             <thead className="sticky top-0 z-10">
-                <tr className="bg-gray-100 dark:bg-[#0a0a0b] text-gray-600 font-medium border-b border-gray-200 dark:border-white/5 text-[10px] uppercase tracking-wider backdrop-blur-md">
-                   <th className="px-6 py-3 font-semibold">Data</th>
-                   <th className="px-6 py-3 font-semibold">Descrição</th>
-                   <th className="px-6 py-3 font-semibold">Categoria</th>
-                   <th className="px-6 py-3 font-semibold">Método / Cartão</th>
-                   <th className="px-6 py-3 font-semibold text-right">Valor</th>
-                   <th className="px-6 py-3 font-semibold w-24"></th>
-                </tr>
-             </thead>
-             <tbody className="text-xs">
-                {filteredTransactions.map(t => {
-                   const m = new Date(t.date).getMonth() + 1; // 1-12
-                   const monthColorsClass = [
-                     '', // 0 not used
-                     'bg-red-500/10', // Jan
-                     'bg-orange-500/10', // Feb
-                     'bg-amber-500/10', // Mar
-                     'bg-lime-500/10', // Apr
-                     'bg-emerald-500/10', // May
-                     'bg-teal-500/10', // Jun
-                     'bg-sky-500/10', // Jul
-                     'bg-blue-500/10', // Aug
-                     'bg-indigo-500/10', // Sep
-                     'bg-violet-500/10', // Oct
-                     'bg-fuchsia-500/10', // Nov
-                     'bg-rose-500/10', // Dec
-                   ];
-                   const rowBgClass = monthColorsClass[m] || '';
+             {filteredTransactions.map(t => {
+                const m = new Date(t.date).getMonth() + 1; // 1-12
+                const monthColorsClass = [
+                  '', // 0 not used
+                  'bg-red-500/5 hover:bg-red-500/10 dark:bg-red-500/10 dark:hover:bg-red-500/20', // Jan
+                  'bg-orange-500/5 hover:bg-orange-500/10 dark:bg-orange-500/10 dark:hover:bg-orange-500/20', // Feb
+                  'bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20', // Mar
+                  'bg-lime-500/5 hover:bg-lime-500/10 dark:bg-lime-500/10 dark:hover:bg-lime-500/20', // Apr
+                  'bg-emerald-500/5 hover:bg-emerald-500/10 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20', // May
+                  'bg-teal-500/5 hover:bg-teal-500/10 dark:bg-teal-500/10 dark:hover:bg-teal-500/20', // Jun
+                  'bg-sky-500/5 hover:bg-sky-500/10 dark:bg-sky-500/10 dark:hover:bg-sky-500/20', // Jul
+                  'bg-blue-500/5 hover:bg-blue-500/10 dark:bg-blue-500/10 dark:hover:bg-blue-500/20', // Aug
+                  'bg-indigo-500/5 hover:bg-indigo-500/10 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20', // Sep
+                  'bg-violet-500/5 hover:bg-violet-500/10 dark:bg-violet-500/10 dark:hover:bg-violet-500/20', // Oct
+                  'bg-fuchsia-500/5 hover:bg-fuchsia-500/10 dark:bg-fuchsia-500/10 dark:hover:bg-fuchsia-500/20', // Nov
+                  'bg-rose-500/5 hover:bg-rose-500/10 dark:bg-rose-500/10 dark:hover:bg-rose-500/20', // Dec
+                ];
+                const rowBgClass = monthColorsClass[m] || 'hover:bg-gray-50 dark:hover:bg-white/5';
 
-                   return (
-                   <tr key={t.id} className={`${rowBgClass} border-b border-gray-200 dark:border-white/5 hover:brightness-95 dark:hover:brightness-110 transition group`}>
-                      <td className="px-6 py-4 text-gray-500">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{t.description} {t.installments ? <span className="opacity-50 text-[10px] bg-gray-200 dark:bg-white/10 px-1 rounded ml-2">Parcelado</span> : ''}</td>
-                      <td className="px-6 py-4">
-                         <span style={getStyleForCategory(t.category)} className="bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-white/5 text-[10px] uppercase tracking-wider font-semibold">{t.category}</span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">
-                         {t.paymentMethod} {t.card && <span style={getStyleForCard(t.card)} className="ml-2 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-white/5 text-[10px] uppercase tracking-wider font-semibold">{t.card}</span>}
-                      </td>
-                      <td className={`px-6 py-4 font-medium text-right ${t.type === 'income' ? 'text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                         {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-1 justify-end opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
-                           {onEdit && (
-                             <button onClick={() => onEdit(t)} className="text-gray-600 hover:text-emerald-500 transition-all p-2 rounded-lg hover:bg-gray-100 dark:bg-white/5 active:bg-gray-200 dark:bg-white/10" title="Editar">
-                               <Pencil className="w-4 h-4" />
-                             </button>
-                           )}
-                           <button onClick={() => setTransactionToDelete(t)} className="text-gray-600 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-gray-100 dark:bg-white/5 active:bg-gray-200 dark:bg-white/10" title="Excluir">
-                             <Trash2 className="w-4 h-4" />
-                           </button>
-                        </div>
-                      </td>
-                   </tr>
-                   );
-                })}
-                {filteredTransactions.length === 0 && (
-                   <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Nenhuma transação encontrada.</td>
-                   </tr>
-                )}
-             </tbody>
-          </table>
+                return (
+                <div key={t.id} onClick={(e) => { e.stopPropagation(); onEdit && onEdit(t); }} className={`${rowBgClass} flex items-center justify-between p-3 sm:p-4 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-gray-100 dark:hover:border-white/5`}>
+                   <div className="flex flex-col min-w-0 pr-2">
+                      <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{t.description} {t.installments ? <span className="opacity-50 text-[10px] bg-gray-200 dark:bg-white/10 px-1 rounded ml-2 font-semibold uppercase tracking-widest">Parcelado</span> : ''}</span>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                         <span className="text-[10px] text-gray-500 shrink-0">
+                            {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                         </span>
+                         
+                         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
+                         
+                         <div className="flex items-center gap-1.5">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: userSettings?.categoryColors?.[t.category] || '#9ca3af' }}
+                            />
+                            <span className="text-[10px] text-gray-500 capitalize tracking-wide">{t.category}</span>
+                         </div>
+
+                         {t.paymentMethod && (
+                            <>
+                               <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
+                               <div className="flex items-center gap-1.5">
+                                  {t.card && (
+                                     <div 
+                                       className="w-2 h-2 rounded-full"
+                                       style={{ backgroundColor: userSettings?.cardColors?.[t.card] || '#9ca3af' }}
+                                     />
+                                  )}
+                                  <span className="text-[10px] text-gray-500 truncate max-w-[150px]">
+                                     {t.type === 'income' ? 'Receita' : (t.paymentMethod === 'Crédito' || t.paymentMethod === 'Débito' ? t.paymentMethod : 'Despesa')}
+                                     {t.card ? ` • ${t.card}` : (t.paymentMethod !== 'Crédito' && t.paymentMethod !== 'Débito' ? ` • ${t.paymentMethod}` : '')}
+                                  </span>
+                               </div>
+                            </>
+                         )}
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                     <span className={`text-sm font-mono tracking-tight font-medium shrink-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                     </span>
+                     <button onClick={(e) => { e.stopPropagation(); setTransactionToDelete(t); }} className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" title="Excluir">
+                       <Trash2 className="w-4 h-4" />
+                     </button>
+                   </div>
+                </div>
+                );
+             })}
+             {filteredTransactions.length === 0 && (
+                <div className="p-8 text-center text-gray-500">Nenhuma transação encontrada.</div>
+             )}
+          </div>
        </div>
 
       {transactionToDelete && (
