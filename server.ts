@@ -45,6 +45,14 @@ async function startServer() {
          return;
       }
 
+      if (text) {
+         const lowerText = text.trim().toLowerCase();
+         if (lowerText === '/ping' || lowerText === '/status' || lowerText === 'está ativo?' || lowerText === 'esta ativo?' || lowerText === 'voce esta ativo?') {
+             await sendMessage({ text: '✅ Sim, estou ativo e pronto para registrar suas finanças!' });
+             return;
+         }
+      }
+
       // Look up existing telegram mapping
       const tgDoc = await getDoc(doc(db, 'telegram_users', String(telegramChatId)));
       

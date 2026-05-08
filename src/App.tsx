@@ -10,6 +10,9 @@ import { AnalysisTab } from './components/AnalysisTab';
 import { TransactionsTab } from './components/TransactionsTab';
 import { ReservesTab } from './components/ReservesTab';
 import { IntegrationTab } from './components/IntegrationTab';
+import { QuickAddTransaction } from './components/QuickAddTransaction';
+import { MobileFAB } from './components/MobileFAB';
+import { MonthYearPicker } from './components/MonthYearPicker';
 import type { MonthlyBudget, UserSettings } from './types';
 
 export default function App() {
@@ -28,18 +31,96 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-[100dvh] bg-gray-50 dark:bg-[#0A0A0B] flex flex-col items-center justify-center p-4 font-sans text-gray-800 dark:text-gray-200">
-         <div className="max-w-md w-full bg-white dark:bg-[#121214] p-8 border border-gray-200 dark:border-white/5 shadow-2xl shadow-gray-200 dark:shadow-black rounded-2xl flex flex-col items-center">
-            <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-black font-bold text-3xl mb-6">$</div>
-            <h1 className="text-2xl font-bold mb-2 tracking-tight text-gray-900 dark:text-white">Finanças Pessoais</h1>
-            <p className="text-gray-500 mb-8 text-center text-sm">Controle seus gastos e gerencie seu dinheiro via Web ou Telegram.</p>
-            <button 
-              onClick={() => signInWithPopup(auth, googleProvider).catch(e => console.error(e.message || String(e)))}
-              className="w-full bg-emerald-500 py-3 rounded-xl font-medium hover:bg-emerald-400 transition flex items-center justify-center gap-2 text-black shadow-lg shadow-emerald-500/20"
-            >
-              Entrar com Google
-            </button>
-         </div>
+      <div className="min-h-screen bg-white dark:bg-[#0B0B0C] flex flex-col lg:flex-row w-full relative overflow-hidden font-sans selection:bg-emerald-500/30">
+        {/* Left Side / Top Side on Mobile */}
+        <div className="w-full lg:w-[55%] relative flex flex-col justify-center lg:justify-between p-8 lg:p-12 bg-[#0B0B0C] text-white overflow-hidden min-h-[50vh] lg:min-h-screen shrink-0">
+          {/* Subtle noise/grid background texture */}
+          <div className="absolute inset-0 opacity-[0.03] z-0" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+          <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent z-0 blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10 flex items-center gap-3 mb-10 lg:mb-0">
+             <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-black font-bold text-xl">$</div>
+             <span className="font-semibold text-lg tracking-tight text-white">Finanças Pessoais</span>
+          </div>
+
+          <div className="relative z-10 max-w-2xl my-auto lg:mb-10 w-full">
+            <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold tracking-tighter leading-[1.1] mb-6 text-white max-w-[15ch] sm:max-w-none">
+              O controle que você <span className="text-emerald-400 italic font-mono font-medium tracking-tight whitespace-nowrap">sempre quis</span>,<br className="hidden sm:block" />em um só lugar.
+            </h1>
+            <p className="text-base sm:text-lg text-gray-400 font-light mb-8 lg:mb-12 max-w-xl leading-relaxed">
+              Gestão inteligente de gastos, acompanhamento de reservas no detalhe e bot integrado ao Telegram para registrar movimentações.
+            </p>
+            
+            <div className="flex flex-col gap-4">
+               <div className="flex items-center gap-4 border border-white/10 bg-white/[0.02] p-4 rounded-2xl backdrop-blur-sm max-w-md transform transition duration-300 hover:-translate-y-1 hover:bg-white/[0.04]">
+                 <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 shadow-inner">
+                   <Bot className="w-6 h-6 text-emerald-400" />
+                 </div>
+                 <div>
+                   <h3 className="font-semibold text-white tracking-tight text-sm sm:text-base">Assistência Inteligente</h3>
+                   <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Adicione transações via chat Telegram.</p>
+                 </div>
+               </div>
+
+               <div className="flex items-center gap-4 border border-white/10 bg-white/[0.02] p-4 rounded-2xl backdrop-blur-sm max-w-md lg:ml-8 transform transition duration-300 hover:-translate-y-1 hover:bg-white/[0.04]">
+                 <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 shadow-inner">
+                   <PiggyBank className="w-6 h-6 text-blue-400" />
+                 </div>
+                 <div>
+                   <h3 className="font-semibold text-white tracking-tight text-sm sm:text-base">Múltiplas Reservas</h3>
+                   <p className="text-xs sm:text-sm text-gray-400 mt-0.5">Acompanhe sua Reserva de Emergência.</p>
+                 </div>
+               </div>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex relative z-10 text-sm py-2 px-4 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm self-start text-gray-400 font-medium tracking-wide">
+            Pronto para uma nova experiência financeira.
+          </div>
+        </div>
+
+        {/* Right Side - Login Form */}
+        <div className="w-full lg:w-[45%] flex flex-col justify-center px-6 py-12 lg:py-0 sm:px-12 md:px-24 bg-white dark:bg-[#121214] relative z-20 lg:border-l border-gray-100 dark:border-white/5 shadow-[0_-20px_40px_rgba(0,0,0,0.2)] lg:shadow-none flex-1 mt-[-2rem] lg:mt-0 rounded-t-3xl lg:rounded-none">
+           <div className="w-12 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full mx-auto mb-8 lg:hidden"></div>
+           
+           <div className="w-full max-w-sm mx-auto flex flex-col h-full justify-center">
+             <div className="mb-10 text-center lg:text-left">
+               <h2 className="text-3xl font-bold mb-3 tracking-tighter text-gray-900 dark:text-white">Acessar Conta</h2>
+               <p className="text-gray-500 text-sm md:text-base leading-relaxed">
+                 Faça login de forma segura e rápida usando sua conta do Google para continuar.
+               </p>
+             </div>
+             
+             <button 
+               onClick={() => signInWithPopup(auth, googleProvider).catch(e => console.error(e.message || String(e)))}
+               className="w-full group relative flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1D] border-2 border-gray-200 dark:border-white/10 px-4 py-4 rounded-2xl hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-900/20 active:scale-[0.98] transition-all duration-300 shadow-sm"
+             >
+               <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+               </svg>
+               <span className="font-semibold text-gray-700 dark:text-gray-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                 Continuar com Google
+               </span>
+             </button>
+
+             <div className="mt-12 text-center flex flex-col gap-3">
+               <div className="flex items-center justify-center gap-3 opacity-50 mb-2">
+                  <div className="w-8 h-px bg-gray-400 dark:bg-white"></div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-300">Vantagens</span>
+                  <div className="w-8 h-px bg-gray-400 dark:bg-white"></div>
+               </div>
+               <p className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center justify-center gap-1.5 focus:outline-none">
+                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Sincronização em nuvem
+               </p>
+               <p className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center justify-center gap-1.5 focus:outline-none">
+                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Sem taxas mensais escondidas
+               </p>
+             </div>
+           </div>
+        </div>
       </div>
     );
   }
@@ -55,6 +136,7 @@ function Dashboard({ user }: { user: User }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'reserves' | 'analysis' | 'integration' | 'settings'>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [txInitialType, setTxInitialType] = useState<'expense' | 'income'>('expense');
   const [txToEdit, setTxToEdit] = useState<Transaction | null>(null);
   const [budget, setBudget] = useState<MonthlyBudget | null>(null);
   const [isReservesOpen, setIsReservesOpen] = useState(false);
@@ -64,6 +146,14 @@ function Dashboard({ user }: { user: User }) {
            localStorage.getItem('theme') === 'dark';
   });
   const [syncState, setSyncState] = useState({ transactions: false, budgets: false, settings: false, inbox: false });
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => {
+    return parseInt(localStorage.getItem('rightSidebarWidth') || '380', 10);
+  });
+
+  useEffect(() => {
+    localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
+  }, [rightSidebarWidth]);
+
 
   useEffect(() => {
     if (isDarkMode) {
@@ -161,272 +251,380 @@ function Dashboard({ user }: { user: User }) {
     return acc;
   }, {} as Record<string, number>);
   const topCategories = Object.entries(categoriesMap).sort((a, b) => (b[1] as number) - (a[1] as number));
+  const recentTransactions = [...currentMonthTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 7);
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = rightSidebarWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = startX - moveEvent.clientX;
+      const newWidth = Math.max(280, Math.min(800, startWidth + deltaX)); // Min 280px, Max 800px
+      setRightSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
+      document.body.classList.remove('select-none');
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.classList.add('select-none');
+  };
+
   return (
-    <div className="flex flex-col-reverse md:flex-row h-[100dvh] w-full bg-gray-50 dark:bg-[#0A0A0B] text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
+    <div className="flex flex-col-reverse md:flex-row h-[100dvh] w-full bg-gray-50 dark:bg-[#0B0B0C] text-gray-800 dark:text-gray-200 font-sans overflow-hidden selection:bg-emerald-500/30">
       {/* Sidebar Navigation */}
-      <nav className="w-full md:w-20 bg-white dark:bg-[#121214] border-t md:border-t-0 md:border-r border-gray-200 dark:border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start py-2 md:py-6 md:gap-8 h-16 md:h-full shrink-0 z-50">
-        <div className="hidden md:flex w-10 h-10 bg-emerald-500 rounded-xl items-center justify-center shadow-lg shadow-emerald-500/20 text-black font-bold text-xl">$</div>
+      <nav className="w-full md:w-20 bg-white dark:bg-[#121214] border-t md:border-t-0 md:border-r border-gray-200 dark:border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:py-6 md:gap-8 min-h-[4rem] md:h-full shrink-0 z-50">
+        <div className="hidden md:flex w-10 h-10 bg-emerald-500 rounded-xl items-center justify-center text-black font-bold text-xl">$</div>
         
-        <div className="flex flex-row md:flex-col gap-1 md:gap-6 mt-0 md:mt-4 opacity-80 w-full md:w-auto justify-around md:justify-start px-2 md:px-0">
-          <button onClick={() => setActiveTab('dashboard')} className={`p-2 md:p-3 rounded-xl transition ${activeTab === 'dashboard' ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`} title="Dashboard">
-             <LayoutDashboard className="w-5 h-5 md:w-5 md:h-5" />
+        <div className="flex flex-row md:flex-col gap-1 md:gap-6 mt-0 md:mt-4 w-full md:w-auto justify-evenly md:justify-start px-1 md:px-0">
+          <button onClick={() => setActiveTab('dashboard')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Dashboard">
+             <LayoutDashboard className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'dashboard' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'dashboard' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
-          <button onClick={() => setActiveTab('transactions')} className={`p-2 md:p-3 rounded-xl transition ${activeTab === 'transactions' ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`} title="Transações">
-             <List className="w-5 h-5 md:w-5 md:h-5" />
+          <button onClick={() => setActiveTab('transactions')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'transactions' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Transações">
+             <List className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'transactions' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'transactions' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
-          <button onClick={() => setActiveTab('reserves')} className={`p-2 md:p-3 rounded-xl transition ${activeTab === 'reserves' ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`} title="Reservas">
-             <PiggyBank className="w-5 h-5 md:w-5 md:h-5" />
+          <button onClick={() => setActiveTab('reserves')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'reserves' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Reservas">
+             <PiggyBank className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'reserves' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'reserves' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
-          <button onClick={() => setActiveTab('analysis')} className={`p-2 md:p-3 rounded-xl transition ${activeTab === 'analysis' ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`} title="Análise">
-             <BarChart3 className="w-5 h-5 md:w-5 md:h-5" />
+          <button onClick={() => setActiveTab('analysis')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'analysis' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Análise">
+             <BarChart3 className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'analysis' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'analysis' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
-          <button onClick={() => setActiveTab('integration')} className={`p-2 md:p-3 rounded-xl transition ${activeTab === 'integration' ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`} title="Integrações">
-             <Bot className="w-5 h-5 md:w-5 md:h-5" />
+          <button onClick={() => setActiveTab('integration')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'integration' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Integrações">
+             <Bot className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'integration' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'integration' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
-          <button onClick={() => setActiveTab('settings')} className={`p-2 md:p-3 rounded-xl transition ${activeTab === 'settings' ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`} title="Configurações">
-             <Settings className="w-5 h-5 md:w-5 md:h-5" />
+          <button onClick={() => setActiveTab('settings')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'settings' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Configurações">
+             <Settings className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'settings' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'settings' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
         </div>
 
         <div className="hidden md:flex flex-col mt-auto items-center gap-2 w-full">
-           <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-3 text-gray-500 hover:text-gray-900 dark:hover:text-white transition rounded-xl hover:bg-gray-200 dark:hover:bg-white/10" title="Alternar Tema">
+           <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-3 text-gray-500 hover:text-gray-900 dark:hover:text-white transition rounded-xl hover:bg-gray-100 dark:hover:bg-white/10" title="Alternar Tema">
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
            </button>
-           <button onClick={() => signOut(auth)} className="mb-2 p-3 text-gray-500 hover:text-red-400 transition rounded-xl hover:bg-red-400/10" title="Sair">
+           <button onClick={() => signOut(auth)} className="mb-2 p-3 text-gray-500 hover:text-red-500 transition rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10" title="Sair">
               <LogOut className="w-5 h-5" />
            </button>
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col gap-6 p-4 md:p-6 lg:p-8 overflow-y-auto w-full">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 shrink-0">
-           <div className="flex justify-between items-start w-full sm:w-auto">
-              <div>
-                 <h1 className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-semibold mb-1">Visão Geral</h1>
-                 <p className="text-3xl font-light text-gray-900 dark:text-white">{formatCurrency(totalIncome - totalExpense)} <span className="text-sm text-emerald-400 font-medium ml-2 relative -top-1">Livre</span></p>
+      <main className="flex-1 flex flex-col gap-6 p-4 md:p-8 lg:p-10 overflow-y-auto w-full">
+        <header className="flex flex-col md:flex-row justify-between items-start gap-4 shrink-0 relative z-10 w-full mb-2">
+           <div className="flex flex-col gap-3 w-full md:w-auto mt-2 md:mt-0">
+              <div className="flex justify-between items-center w-full md:w-auto">
+                <h1 className="text-xl md:text-2xl tracking-tight text-gray-900 dark:text-white font-bold flex items-center gap-3">
+                   <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse hidden md:block"></span>
+                   {activeTab === 'dashboard' ? 'Visão Geral' : 
+                    activeTab === 'transactions' ? 'Transações' : 
+                    activeTab === 'reserves' ? 'Reservas' : 
+                    activeTab === 'analysis' ? 'Análise' : 
+                    activeTab === 'integration' ? 'Integração' : 'Configurações'}
+                </h1>
+                
+                <div className="flex md:hidden items-center gap-2">
+                   <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition rounded-full hover:bg-gray-200 dark:hover:bg-white/10" title="Alternar Tema">
+                      {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                   </button>
+                   <button onClick={() => signOut(auth)} className="p-2 text-gray-500 hover:text-red-500 transition rounded-full hover:bg-red-50 dark:hover:bg-red-500/10" title="Sair">
+                      <LogOut className="w-5 h-5" />
+                   </button>      
+                </div>
               </div>
-              <div className="flex md:hidden gap-1">
-                 <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition rounded-lg hover:bg-gray-200 dark:hover:bg-white/10" title="Alternar Tema">
-                    {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+
+              <div className="flex md:hidden items-center">
+                 {/* Action button - only on mobile, below Visão Geral */}
+                 <button onClick={() => { setTxInitialType('expense'); setIsModalOpen(true); }} className="w-full flex justify-center bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-400 transition items-center gap-2 shadow-sm whitespace-nowrap active:scale-95">
+                    <Plus className="w-4 h-4" /> 
+                    <span>Nova Transação</span>
                  </button>
-                 <button onClick={() => signOut(auth)} className="p-2 text-gray-500 hover:text-red-400 transition rounded-lg hover:bg-red-400/10" title="Sair">
-                    <LogOut className="w-5 h-5" />
-                 </button>      
               </div>
+
+              <MonthYearPicker 
+                currentMonth={currentMonth} 
+                currentYear={currentYear} 
+                onMonthChange={setCurrentMonth} 
+                onYearChange={setCurrentYear} 
+              />
            </div>
            
-           <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
-              <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-lg text-xs" title={Object.values(syncState).some(Boolean) ? "Sincronizando..." : "Sincronizado"}>
-                {Object.values(syncState).some(Boolean) ? (
-                  <>
-                    <RefreshCw className="w-3 h-3 text-emerald-500 animate-spin" />
-                    <span className="text-gray-500">Salvando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Cloud className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                    <span className="text-gray-400 dark:text-gray-500 hidden sm:inline">Salvo</span>
-                  </>
-                )}
+           <div className="w-full md:w-auto flex justify-between sm:justify-end items-center gap-3 self-center sm:self-start md:self-center mt-2 md:mt-0">
+              <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-xl text-[10px] uppercase tracking-widest font-bold shadow-sm" title={Object.values(syncState).some(Boolean) ? "Sincronizando..." : "Sincronizado"}>
+                   {Object.values(syncState).some(Boolean) ? (
+                       <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
+                   ) : (
+                       <Cloud className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                   )}
+                 </div>
               </div>
-              <div className="flex gap-2">
-                 <select value={currentYear} onChange={e => setCurrentYear(Number(e.target.value))} className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-lg text-xs p-2 text-gray-900 dark:text-white outline-none cursor-pointer hover:bg-gray-100 dark:bg-white/5 transition focus:border-emerald-500/50">
-                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-                 </select>
-                 <select value={currentMonth} onChange={e => setCurrentMonth(Number(e.target.value))} className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-lg text-xs p-2 text-gray-900 dark:text-white outline-none cursor-pointer hover:bg-gray-100 dark:bg-white/5 transition focus:border-emerald-500/50">
-                    {Array.from({length: 12}).map((_, i) => <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('pt-BR', { month: 'long' })}</option>)}
-                 </select>
-              </div>
-              <button onClick={() => setIsModalOpen(true)} className="bg-emerald-500 text-black px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/20 flex items-center gap-2">
-                 <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nova Transação</span>
-              </button>
+
+              {/* Action button - removed for web version as requested */}
+              {/* <button onClick={() => { setTxInitialType('expense'); setIsModalOpen(true); }} className="hidden md:flex bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-wider hover:bg-emerald-400 transition items-center gap-2 shadow-sm whitespace-nowrap group active:scale-95 ml-auto">
+                 <Plus className="w-4 h-4 transition-transform group-hover:scale-110" /> 
+                 <span>Nova Transação</span>
+              </button> */}
            </div>
         </header>
 
-        <div className="flex-1 flex flex-col gap-6 mt-4">
-           {activeTab === 'dashboard' && (
-             <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                   {/* Receitas */}
-                   <div className="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-emerald-500/20 shadow-sm flex flex-col relative overflow-hidden group hover:border-emerald-500/40 transition-colors duration-300">
-                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none"></div>
-                      <div className="flex justify-between items-start mb-4 z-10 relative">
-                         <div className="flex items-center gap-2 text-emerald-500">
-                            <div className="p-2 bg-emerald-500/10 rounded-lg">
-                               <TrendingUp className="w-4 h-4" />
-                            </div>
-                            <span className="text-xs font-bold uppercase tracking-wider">Receitas</span>
-                         </div>
-                      </div>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white z-10 relative">{formatCurrency(totalIncome)}</p>
-                   </div>
-                   
-                   {/* Gastos */}
-                   <div className="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-red-500/20 shadow-sm flex flex-col relative overflow-hidden group hover:border-red-500/40 transition-colors duration-300">
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent pointer-events-none"></div>
-                      <div className="flex justify-between items-start mb-4 z-10 relative">
-                         <div className="flex items-center gap-2 text-red-500">
-                            <div className="p-2 bg-red-500/10 rounded-lg">
-                               <TrendingDown className="w-4 h-4" />
-                            </div>
-                            <span className="text-xs font-bold uppercase tracking-wider">Gastos</span>
-                         </div>
-                      </div>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white z-10 relative">{formatCurrency(totalExpense)}</p>
-                   </div>
+        {/* Mobile FAB */}
+        <MobileFAB onAddTransaction={(type) => { setTxInitialType(type); setIsModalOpen(true); }} />
 
-                   {/* Saldo Líquido */}
-                   <div className={`p-6 rounded-2xl border shadow-sm flex flex-col relative overflow-hidden group transition-colors duration-300 ${totalIncome - totalExpense >= 0 ? 'bg-white dark:bg-[#121214] border-blue-500/20 hover:border-blue-500/40' : 'bg-white dark:bg-[#121214] border-red-500/20 hover:border-red-500/40'}`}>
-                      <div className={`absolute inset-0 bg-gradient-to-br pointer-events-none ${totalIncome - totalExpense >= 0 ? 'from-blue-500/5 to-transparent' : 'from-red-500/5 to-transparent'}`}></div>
-                      <div className="flex justify-between items-start mb-4 z-10 relative">
-                         <div className={`flex items-center gap-2 ${totalIncome - totalExpense >= 0 ? 'text-blue-500' : 'text-red-500'}`}>
-                            <div className={`p-2 rounded-lg ${totalIncome - totalExpense >= 0 ? 'bg-blue-500/10' : 'bg-red-500/10'}`}>
+        <div className="flex-1 flex flex-col gap-6 mt-4 md:mt-6 pb-20 md:pb-0">
+           {activeTab === 'dashboard' && (
+             <div className="flex flex-col lg:flex-row gap-6 w-full max-w-[1600px] mx-auto h-full">
+                <div className="flex-1 min-w-0 flex flex-col gap-6 @container">
+                   {/* Summary Cards */}
+                   <div className="grid grid-cols-2 @2xl:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
+                      {/* Receitas */}
+                      <div className="bg-white dark:bg-[#121214] p-4 md:p-5 lg:p-6 rounded-2xl border-l-[3px] border-y border-r border border-gray-100 dark:border-white/5 border-l-emerald-500 shadow-sm flex flex-col relative group transition-all">
+                         <div className="flex justify-between items-start mb-4 md:mb-6">
+                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-gray-500">Receitas</span>
+                            <div className="p-1 md:p-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-md text-emerald-500 hidden sm:block">
+                               <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </div>
+                         </div>
+                         <p className="text-xl sm:text-2xl lg:text-3xl font-medium font-mono tracking-tighter text-gray-900 dark:text-white truncate">{formatCurrency(totalIncome)}</p>
+                      </div>
+                      
+                      {/* Gastos */}
+                      <div className="bg-white dark:bg-[#121214] p-4 md:p-5 lg:p-6 rounded-2xl border-l-[3px] border-y border-r border border-gray-100 dark:border-white/5 border-l-red-500 shadow-sm flex flex-col relative group transition-all">
+                         <div className="flex justify-between items-start mb-4 md:mb-6">
+                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-gray-500">Gastos</span>
+                            <div className="p-1 md:p-1.5 bg-red-50 dark:bg-red-500/10 rounded-md text-red-500 hidden sm:block">
+                               <TrendingDown className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            </div>
+                         </div>
+                         <p className="text-xl sm:text-2xl lg:text-3xl font-medium font-mono tracking-tighter text-gray-900 dark:text-white truncate">{formatCurrency(totalExpense)}</p>
+                      </div>
+
+                      {/* Saldo Líquido */}
+                      <div className={`bg-white dark:bg-[#121214] col-span-2 @2xl:col-span-1 p-4 md:p-5 lg:p-6 rounded-2xl border-l-[3px] border-y border-r border-gray-100 dark:border-white/5 shadow-sm flex flex-col relative group transition-all ${totalIncome - totalExpense >= 0 ? 'border-l-blue-500' : 'border-l-red-500'}`}>
+                         <div className="flex justify-between items-start mb-4 md:mb-6">
+                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-gray-500">Balanço (Mês)</span>
+                            <div className={`p-1.5 rounded-md hidden sm:block ${totalIncome - totalExpense >= 0 ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' : 'bg-red-50 dark:bg-red-500/10 text-red-500'}`}>
                                <Activity className="w-4 h-4" />
                             </div>
-                            <span className="text-xs font-bold uppercase tracking-wider">Livre no Mês</span>
+                         </div>
+                         <div className="flex items-center justify-between">
+                            <p className={`text-2xl lg:text-3xl font-medium font-mono tracking-tighter truncate ${totalIncome - totalExpense >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-500'}`}>{formatCurrency(totalIncome - totalExpense)}</p>
+                            {/* Visual indicator for mobile */}
+                            <div className={`sm:hidden w-8 h-1 rounded-full ${totalIncome - totalExpense >= 0 ? 'bg-blue-500' : 'bg-red-500'}`}></div>
                          </div>
                       </div>
-                      <p className={`text-3xl font-bold z-10 relative ${totalIncome - totalExpense >= 0 ? 'text-blue-500' : 'text-red-500'}`}>{formatCurrency(totalIncome - totalExpense)}</p>
                    </div>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                   {/* Análise Mês */}
-                   <div className="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-white/5 flex flex-col shadow-sm">
-                      <div className="flex items-center gap-2 mb-6">
-                         <BarChart3 className="w-5 h-5 text-gray-400" />
-                         <span className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">Análise de Consumo</span>
-                      </div>
-                     
-                      <div className="flex-1 flex flex-col justify-center space-y-8">
-                         <div>
-                            <div className="flex justify-between items-end mb-2">
-                               <span className="text-sm text-gray-500 font-medium">Gasto vs Receita</span>
-                               <span className={`text-xl font-bold ${expensePercentage > 80 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
-                                  {expensePercentage.toFixed(1)}%
-                               </span>
-                            </div>
-                            <div className="w-full bg-gray-100 dark:bg-white/5 h-3 rounded-full overflow-hidden">
-                               <div 
-                                 className={`h-full transition-all duration-500 ${expensePercentage > 80 ? 'bg-red-500' : 'bg-emerald-500'}`} 
-                                 style={{ width: `${Math.min(expensePercentage, 100)}%` }}
-                               ></div>
-                            </div>
-                            {expensePercentage > 80 && (
-                               <div className="flex items-start gap-2 mt-4 p-4 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-100 dark:border-red-500/20">
-                                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                                  <p className="text-sm text-red-700 dark:text-red-400 font-medium leading-relaxed">
-                                     Atenção: Seus gastos atingiram um nível alto em relação à receita. Considere frear as despesas.
-                                  </p>
+                   {/* Quick Add For Dashboard */}
+                   <QuickAddTransaction userId={user.uid} userSettings={userSettings} />
+
+                   <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4 lg:gap-6">
+                      {/* Análise Mês */}
+                      <div className="bg-white dark:bg-[#121214] p-5 lg:p-6 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col shadow-sm">
+                         <div className="flex items-center gap-2 mb-6 opacity-80">
+                            <BarChart3 className="w-4 h-4 text-gray-400" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-900 dark:text-white">Análise de Consumo</span>
+                         </div>
+                        
+                         <div className="flex-1 flex flex-col justify-between space-y-8">
+                            <div>
+                               <div className="flex justify-between items-end mb-2">
+                                  <span className="text-xs text-gray-500 font-medium tracking-wide">Gasto vs Receita</span>
+                                  <span className={`text-lg font-bold font-mono tracking-tight ${expensePercentage > 80 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                                     {expensePercentage.toFixed(1)}%
+                                  </span>
                                </div>
-                            )}
-                         </div>
+                               <div className="w-full bg-gray-100 dark:bg-white/5 h-2 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full transition-all duration-500 ${expensePercentage > 80 ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                    style={{ width: `${Math.min(expensePercentage, 100)}%` }}
+                                  ></div>
+                               </div>
+                               {expensePercentage > 80 && (
+                                  <p className="text-[11px] text-red-500 font-medium leading-relaxed mt-3 flex items-start gap-1.5">
+                                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                     Seus gastos atingiram um nível alto em relação à receita neste mês.
+                                  </p>
+                               )}
+                            </div>
 
-                         <div>
-                            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-4">Maiores Ofensores</span>
-                            {topCategories.length > 0 ? (
-                              <div className="space-y-4">
-                                {topCategories.slice(0, 3).map(([cat, amt], idx) => (
-                                  <div key={idx} className="flex flex-col gap-2">
-                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-700 dark:text-gray-300 capitalize font-medium">{cat}</span>
-                                        <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(amt as number)}</span>
+                            <div>
+                               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block mb-4">Maiores Ofensores</span>
+                               {topCategories.length > 0 ? (
+                                 <div className="space-y-3">
+                                   {topCategories.slice(0, 3).map(([cat, amt], idx) => (
+                                     <div key={idx} className="flex flex-col gap-1.5">
+                                        <div className="flex justify-between items-center text-xs">
+                                           <span className="text-gray-600 dark:text-gray-400 capitalize font-medium">{cat}</span>
+                                           <span className="text-gray-900 dark:text-white font-mono font-medium tracking-tight">{formatCurrency(amt as number)}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                           <div 
+                                             className="h-full bg-gray-300 dark:bg-white/20 rounded-full" 
+                                             style={{ width: `${Math.min(((amt as number)/totalExpense)*100, 100)}%` }}
+                                           ></div>
+                                        </div>
                                      </div>
-                                     <div className="w-full bg-gray-100 dark:bg-white/5 h-2 rounded-full overflow-hidden">
-                                        <div 
-                                          className="h-full bg-gray-300 dark:bg-white/20 rounded-full" 
-                                          style={{ width: `${Math.min(((amt as number)/totalExpense)*100, 100)}%` }}
-                                        ></div>
-                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 text-center">
-                                 <p className="text-sm text-gray-500">Nenhum gasto registrado no período.</p>
-                              </div>
-                            )}
+                                   ))}
+                                 </div>
+                               ) : (
+                                 <div className="py-4 border-y border-dashed border-gray-100 dark:border-white/5 text-center">
+                                    <p className="text-xs text-gray-500">Nenhum gasto no período.</p>
+                                 </div>
+                               )}
+                            </div>
                          </div>
                       </div>
-                   </div>
 
-                   {/* Resumo Reservas */}
-                   <div className="bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-white/5 flex flex-col shadow-sm">
-                      <div className="flex items-center justify-between mb-6">
-                         <div className="flex items-center gap-2">
-                             <PiggyBank className="w-5 h-5 text-gray-400" />
-                             <span className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">Posição de Reservas</span>
+                      {/* Resumo Reservas */}
+                      <div className="bg-white dark:bg-[#121214] p-5 lg:p-6 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col shadow-sm">
+                         <div className="flex items-center justify-between mb-6 opacity-80">
+                            <div className="flex items-center gap-2">
+                                <PiggyBank className="w-4 h-4 text-gray-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-900 dark:text-white">Posição de Reservas</span>
+                            </div>
+                            <button
+                              onClick={() => setHideReservesValues(!hideReservesValues)}
+                              className="p-1.5 text-gray-400 hover:text-gray-900 dark:text-white transition rounded-md hover:bg-gray-50 dark:hover:bg-white/5"
+                              title={hideReservesValues ? "Mostrar valores" : "Ocultar valores"}
+                            >
+                               {hideReservesValues ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
                          </div>
-                         <button
-                           onClick={() => setHideReservesValues(!hideReservesValues)}
-                           className="p-2 text-gray-400 hover:text-gray-900 dark:text-white transition rounded-xl hover:bg-gray-100 dark:bg-white/5"
-                           title={hideReservesValues ? "Mostrar valores" : "Ocultar valores"}
-                         >
-                            {hideReservesValues ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                         </button>
-                      </div>
 
-                      {budget ? (
-                         <div className="flex-1 flex flex-col justify-center gap-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                               <div className="bg-gray-50 dark:bg-[#0A0A0B] p-4 rounded-xl border border-gray-200 dark:border-white/5 flex flex-col">
-                                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Salário Declarado</p>
-                                  <p className="text-lg text-gray-900 dark:text-white font-semibold truncate">
+                         {budget ? (
+                            <div className="flex-1 flex flex-col gap-3">
+                               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
+                                  <span className="text-xs text-gray-500 font-medium">Salário Declarado</span>
+                                  <span className="text-sm font-mono tracking-tight font-medium text-gray-900 dark:text-white">
                                      {hideReservesValues ? '••••' : formatCurrency(budget.salary)}
-                                  </p>
+                                  </span>
                                </div>
-                               <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-xl border border-emerald-100 dark:border-emerald-500/10 flex flex-col">
-                                  <p className="text-[10px] text-emerald-600 dark:text-emerald-500 uppercase tracking-wider font-bold mb-1">Reserva Principal</p>
-                                  <p className="text-lg text-emerald-700 dark:text-emerald-400 font-semibold truncate">
+                               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
+                                  <span className="text-xs text-gray-500 font-medium">Reserva Principal</span>
+                                  <span className="text-sm font-mono tracking-tight font-medium text-emerald-600 dark:text-emerald-400">
                                      {hideReservesValues ? '••••' : formatCurrency(budget.reserve)}
-                                  </p>
+                                  </span>
                                </div>
-                               <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-xl border border-emerald-100 dark:border-emerald-500/10 flex flex-col">
-                                  <p className="text-[10px] text-emerald-600 dark:text-emerald-500 uppercase tracking-wider font-bold mb-1">Res. da Reserva</p>
-                                  <p className="text-lg text-emerald-700 dark:text-emerald-400 font-semibold truncate">
-                                     {hideReservesValues ? '••••' : formatCurrency(budget.reserveOfReserve)}
-                                  </p>
-                               </div>
-                               <div className="bg-blue-50 dark:bg-blue-500/5 p-4 rounded-xl border border-blue-100 dark:border-blue-500/10 flex flex-col">
-                                  <p className="text-[10px] text-blue-600 dark:text-blue-500 uppercase tracking-wider font-bold mb-1">Carteira Livre</p>
-                                  <p className="text-lg text-blue-700 dark:text-blue-400 font-semibold truncate">
+                               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
+                                  <span className="text-xs text-gray-500 font-medium">Carteira Livre</span>
+                                  <span className="text-sm font-mono tracking-tight font-medium text-blue-600 dark:text-blue-400">
                                      {hideReservesValues ? '••••' : formatCurrency(budget.wallet)}
-                                  </p>
+                                  </span>
                                </div>
-                               <div className="bg-red-50 dark:bg-red-500/5 p-4 rounded-xl border border-red-100 dark:border-red-500/10 flex flex-col col-span-2 sm:col-span-1">
-                                  <p className="text-[10px] text-red-600 dark:text-red-500 uppercase tracking-wider font-bold mb-1">Saques da Carteira</p>
-                                  <p className="text-lg text-red-700 dark:text-red-400 font-semibold truncate">
-                                     {hideReservesValues ? '••••' : formatCurrency(budget.walletWithdrawals)}
-                                  </p>
-                               </div>
-                               <div className="bg-red-50 dark:bg-red-500/5 p-4 rounded-xl border border-red-100 dark:border-red-500/10 flex flex-col col-span-2 sm:col-span-1">
-                                  <p className="text-[10px] text-red-600 dark:text-red-500 uppercase tracking-wider font-bold mb-1">Saques de Emergência</p>
-                                  <p className="text-lg text-red-700 dark:text-red-400 font-semibold truncate">
-                                     {hideReservesValues ? '••••' : formatCurrency(budget.emergencyWithdrawals)}
-                                  </p>
+                               <div className="flex flex-col gap-1 mt-auto">
+                                  <div className="flex justify-between items-center py-1">
+                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Carteira</span>
+                                     <span className="text-xs font-mono tracking-tight text-red-500">
+                                        {hideReservesValues ? '••••' : formatCurrency(budget.walletWithdrawals)}
+                                     </span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1">
+                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Emergência</span>
+                                     <span className="text-xs font-mono tracking-tight text-red-500">
+                                        {hideReservesValues ? '••••' : formatCurrency(budget.emergencyWithdrawals)}
+                                     </span>
+                                  </div>
                                </div>
                             </div>
-                         </div>
-                      ) : (
-                         <div className="flex-1 flex items-center justify-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl bg-gray-50 dark:bg-white/[0.02]">
-                            <p className="text-sm text-gray-500 font-medium text-center">Nenhum valor base configurado no mês.</p>
-                         </div>
-                      )}
+                         ) : (
+                            <div className="flex-1 flex items-center justify-center p-4 border border-dashed border-gray-200 dark:border-white/10 rounded-xl bg-gray-50 dark:bg-white/[0.02]">
+                               <p className="text-xs text-gray-500 font-medium text-center">Nenhum valor base ajustado<br/>para este mês.</p>
+                            </div>
+                         )}
+                      </div>
                    </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[500px]">
-                   <div className="p-6 border-b border-gray-200 dark:border-white/5 flex items-center justify-between">
-                       <div className="flex items-center gap-2">
-                          <List className="w-5 h-5 text-gray-400" />
-                          <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">Últimas Transações ({currentMonth}/{currentYear})</h2>
-                       </div>
+                {/* Right Column: Útlimas Transações */}
+                <div 
+                  className="w-full shrink-0 flex flex-col md:h-[400px] lg:h-[calc(100vh-2rem)] md:min-h-[250px] md:max-h-[85vh] bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm relative group/sidebar desktop-sidebar-width"
+                  style={{ '--sidebar-width': `${rightSidebarWidth}px` } as React.CSSProperties}
+                >
+                   {/* Resize Handle */}
+                   <div 
+                     className="hidden lg:flex absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-emerald-500/50 z-20 transition-colors items-center justify-center translate-x-[-50%]"
+                     onMouseDown={handleResizeStart}
+                   >
+                     <div className="w-1.5 h-10 bg-gray-300 dark:bg-gray-600 rounded-full opacity-0 group-hover/sidebar:opacity-100 transition-opacity" />
                    </div>
-                   <div className="flex-1 overflow-auto">
-                     <TransactionsTab userId={user.uid} transactions={transactions} onEdit={(t) => { setTxToEdit(t); setIsModalOpen(true); }} userSettings={userSettings} />
+                   
+                   <div className="flex flex-col h-full rounded-2xl overflow-hidden relative z-10 bg-white dark:bg-[#121214]">
+                     <div className="p-5 lg:p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/[0.01] sticky top-0 z-10">
+                         <div className="flex items-center gap-2 opacity-80">
+                            <List className="w-4 h-4 text-gray-400" />
+                            <h2 className="text-[10px] font-bold uppercase tracking-widest text-gray-900 dark:text-white">Últimas do Mês</h2>
+                         </div>
+                         <button onClick={() => setActiveTab('transactions')} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Ver tudo</button>
+                     </div>
+                     <div className="flex-1 overflow-auto p-2">
+                     {recentTransactions.length > 0 ? (
+                        <div className="flex flex-col">
+                           {recentTransactions.map(tx => (
+                              <div key={tx.id} onClick={() => { setTxToEdit(tx); setIsModalOpen(true); }} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-gray-100 dark:hover:border-white/5">
+                                 <div className="flex flex-col min-w-0 pr-2">
+                                    <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{tx.description}</span>
+                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                       <span className="text-[10px] text-gray-500 shrink-0">
+                                          {new Date(tx.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                                       </span>
+                                       
+                                       <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
+                                       
+                                       <div className="flex items-center gap-1.5">
+                                          <div 
+                                            className="w-2 h-2 rounded-full" 
+                                            style={{ backgroundColor: userSettings?.categoryColors?.[tx.category] || '#9ca3af' }}
+                                          />
+                                          <span className="text-[10px] text-gray-500 capitalize tracking-wide">{tx.category}</span>
+                                       </div>
+
+                                       {tx.paymentMethod && (
+                                          <>
+                                             <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
+                                             <div className="flex items-center gap-1.5">
+                                                {tx.card && (
+                                                   <div 
+                                                     className="w-2 h-2 rounded-full"
+                                                     style={{ backgroundColor: userSettings?.cardColors?.[tx.card] || '#9ca3af' }}
+                                                   />
+                                                )}
+                                                <span className="text-[10px] text-gray-500 truncate max-w-[150px]">
+                                                   {tx.type === 'income' ? 'Receita' : (tx.paymentMethod === 'Crédito' || tx.paymentMethod === 'Débito' ? tx.paymentMethod : 'Despesa')}
+                                                   {tx.card ? ` • ${tx.card}` : (tx.paymentMethod !== 'Crédito' && tx.paymentMethod !== 'Débito' ? ` • ${tx.paymentMethod}` : '')}
+                                                </span>
+                                             </div>
+                                          </>
+                                       )}
+                                    </div>
+                                 </div>
+                                 <span className={`text-sm font-mono tracking-tight font-medium shrink-0 ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                 </span>
+                              </div>
+                           ))}
+                        </div>
+                     ) : (
+                        <div className="py-12 flex flex-col items-center justify-center text-center opacity-60">
+                           <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-3">
+                              <List className="w-5 h-5 text-gray-400" />
+                           </div>
+                           <p className="text-xs text-gray-500">Sem transações no momento</p>
+                        </div>
+                     )}
+                   </div>
                    </div>
                 </div>
              </div>
@@ -454,7 +652,7 @@ function Dashboard({ user }: { user: User }) {
         </div>
       </main>
 
-      <TransactionModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setTxToEdit(null); }} userId={user.uid} userSettings={userSettings} initialData={txToEdit} />
+      <TransactionModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setTxToEdit(null); }} userId={user.uid} userSettings={userSettings} initialData={txToEdit} initialType={txInitialType} />
     </div>
   );
 }

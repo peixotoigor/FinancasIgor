@@ -3,17 +3,9 @@ import { Transaction } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, deleteDoc, collection, addDoc, writeBatch } from 'firebase/firestore';
 import { Trash2, Pencil, Plus, Check, X, Search, Filter, RefreshCw } from 'lucide-react';
+import { QuickAddTransaction } from './QuickAddTransaction';
 
 export function TransactionsTab({ userId, transactions, onEdit, userSettings }: { userId?: string, transactions: Transaction[], onEdit?: (t: Transaction) => void, userSettings?: import('../types').UserSettings }) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [addType, setAddType] = useState<'expense' | 'income'>('expense');
-  const [addDesc, setAddDesc] = useState('');
-  const [addAmount, setAddAmount] = useState('');
-  const [addDate, setAddDate] = useState(new Date().toISOString().split('T')[0]);
-  const [addCat, setAddCat] = useState('');
-  const [addMethod, setAddMethod] = useState('');
-  const [addCard, setAddCard] = useState('');
-
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
@@ -24,7 +16,6 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   const resetAddForm = () => {
-    setIsAdding(false);
     setAddDesc('');
     setAddAmount('');
     setAddDate(new Date().toISOString().split('T')[0]);
@@ -281,6 +272,11 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
             )}
           </div>
        </div>
+       {userId && (
+          <div className="p-4 px-4 sm:px-6 pb-0 pt-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
+            <QuickAddTransaction userId={userId} userSettings={userSettings} />
+          </div>
+       )}
        <div 
          ref={scrollRef}
          className="overflow-auto flex-1 p-0 relative"
@@ -313,63 +309,6 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
                 </tr>
              </thead>
              <tbody className="text-xs">
-                {userId && (
-                  <tr className="bg-emerald-50/50 dark:bg-emerald-900/10 border-b border-emerald-100 dark:border-emerald-900/30 shadow-inner">
-                    <td className="px-6 py-2">
-                       <input type="date" value={addDate} onFocus={() => setIsAdding(true)} onChange={e => setAddDate(e.target.value)} className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none dark:[&::-webkit-calendar-picker-indicator]:invert" />
-                    </td>
-                    <td className="px-6 py-2">
-                       <input type="text" placeholder="Adicionar nova..." onFocus={() => setIsAdding(true)} value={addDesc} onChange={e => setAddDesc(e.target.value)} className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none placeholder:text-gray-400" />
-                    </td>
-                    <td className="px-6 py-2">
-                       {isAdding ? (
-                         <select value={addCat} onChange={e => setAddCat(e.target.value)} className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none">
-                            <option value="" disabled>Selecione...</option>
-                            {(addType === 'expense' ? userSettings?.categories : userSettings?.incomeCategories)?.map(c => <option key={c} value={c}>{c}</option>)}
-                         </select>
-                       ) : <span className="opacity-0">-</span>}
-                    </td>
-                    <td className="px-6 py-2">
-                       {isAdding ? (
-                         addType === 'expense' ? (
-                           <div className="flex flex-col gap-1 w-full max-w-xs">
-                             <select value={addMethod} onChange={e => setAddMethod(e.target.value)} className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none">
-                                <option value="" disabled>Selecione...</option>
-                                <option value="Débito">Débito</option>
-                                <option value="Crédito">Crédito</option>
-                                <option value="Pix">Pix</option>
-                                <option value="Dinheiro">Dinheiro</option>
-                             </select>
-                             {(addMethod === 'Crédito' || addMethod === 'Débito') && (
-                               <select value={addCard} onChange={e => setAddCard(e.target.value)} className="w-full bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none">
-                                  <option value="" disabled>Cartão...</option>
-                                  {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
-                               </select>
-                             )}
-                           </div>
-                         ) : <span className="text-gray-500">-</span>
-                       ) : <span className="opacity-0">-</span>}
-                    </td>
-                    <td className="px-6 py-2">
-                       {isAdding ? (
-                         <div className="flex items-center justify-end gap-2">
-                           <button onClick={() => { setAddType(addType === 'expense' ? 'income' : 'expense'); setAddCat(''); }} className={`px-2 py-1 object-none shrink-0 rounded border text-[10px] font-bold ${addType === 'expense' ? 'border-red-500/30 text-red-500 bg-red-500/10' : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'}`}>
-                             {addType === 'expense' ? '-' : '+'}
-                           </button>
-                           <input type="number" step="0.01" placeholder="0.00" onFocus={() => setIsAdding(true)} value={addAmount} onChange={e => setAddAmount(e.target.value)} className="w-20 text-right bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded px-2 py-1 text-xs focus:border-emerald-500 focus:outline-none placeholder:text-gray-400" />
-                         </div>
-                       ) : <span className="opacity-0">-</span>}
-                    </td>
-                    <td className="px-6 py-2 text-right">
-                       {isAdding && (
-                         <div className="flex gap-1 justify-end">
-                            <button onClick={handleQuickAdd} disabled={!addDesc || !addAmount || !addCat} className="p-1 rounded bg-emerald-500 text-white disabled:opacity-50 hover:bg-emerald-600 transition"><Check className="w-4 h-4" /></button>
-                            <button onClick={resetAddForm} className="p-1 rounded bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/20 transition"><X className="w-4 h-4" /></button>
-                         </div>
-                       )}
-                    </td>
-                  </tr>
-                )}
                 {filteredTransactions.map(t => {
                    const m = new Date(t.date).getMonth() + 1; // 1-12
                    const monthColorsClass = [

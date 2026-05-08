@@ -4,8 +4,8 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, collection, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { X, Plus, Trash2, Pencil, MoreVertical } from 'lucide-react';
 
-export function TransactionModal({ isOpen, onClose, userId, userSettings, initialData }: { isOpen: boolean, onClose: () => void, userId: string, userSettings: UserSettings, initialData?: Transaction | null }) {
-  const [type, setType] = useState<'income' | 'expense' | 'transfer'>('expense');
+export function TransactionModal({ isOpen, onClose, userId, userSettings, initialData, initialType }: { isOpen: boolean, onClose: () => void, userId: string, userSettings: UserSettings, initialData?: Transaction | null, initialType?: 'expense' | 'income' }) {
+  const [type, setType] = useState<'income' | 'expense' | 'transfer'>(initialType || 'expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -42,7 +42,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
             setCard(initialData.card || (userSettings?.cards?.length ? userSettings.cards[0] : ''));
             setInstallments(1); // Only edit single installment
         } else {
-            setType('expense');
+            setType(initialType || 'expense');
             setDescription('');
             setAmount('');
             setDate(new Date().toISOString().split('T')[0]);
