@@ -17,33 +17,71 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
   const [addCat, setAddCat] = useState('');
   const [addMethod, setAddMethod] = useState('');
   const [addCard, setAddCard] = useState('');
+  const [addInstallments, setAddInstallments] = useState(1);
 
   const resetAddForm = () => {
     setAddDesc('');
     setAddAmount('');
+    setAddInstallments(1);
     setAddDate(new Date().toISOString().split('T')[0]);
   };
 
+  const isAddDisabled = 
+    !userId ||
+    !addDesc.trim() || 
+    !addAmount || 
+    !addCat || 
+    (addType === 'expense' && !addMethod) || 
+    (addType === 'expense' && (addMethod === 'Crédito' || addMethod === 'Débito') && !addCard);
+
   const handleQuickAdd = async () => {
-    if (!userId || !addDesc || !addAmount || !addCat) return;
+    if (isAddDisabled) return;
     const parsedAmount = parseFloat(addAmount.replace(',', '.'));
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     try {
       const baseDate = new Date(addDate + 'T12:00:00');
-      const payload: Transaction = {
-          userId,
-          description: addDesc,
-          amount: parsedAmount,
-          date: baseDate.getTime(),
-          type: addType,
-          category: addCat,
-          account: addType === 'expense' ? 'Conta' : '',
-          paymentMethod: addType === 'expense' ? (addMethod || 'Débito') : '',
-          card: addType === 'expense' && (addMethod === 'Crédito' || addMethod === 'Débito') ? addCard : undefined,
-          createdAt: Date.now()
-      };
-      await addDoc(collection(db, 'transactions'), payload);
+      
+      const actualInstallments = addType === 'expense' && addMethod === 'Crédito' ? addInstallments : 1;
+      const groupId = actualInstallments > 1 ? crypto.randomUUID() : undefined;
+      const perInstallmentAmount = Number((parsedAmount / actualInstallments).toFixed(2));
+      let remainingAmount = parsedAmount;
+
+      for (let i = 1; i <= actualInstallments; i++) {
+        let currentAmount = perInstallmentAmount;
+        if (i === actualInstallments) {
+           currentAmount = remainingAmount;
+        } else {
+           remainingAmount -= currentAmount;
+        }
+
+        const txDate = new Date(baseDate.getTime());
+        if (i > 1) {
+          const expectedMonth = (baseDate.getMonth() + i - 1) % 12;
+          txDate.setMonth(baseDate.getMonth() + (i - 1));
+          if (txDate.getMonth() !== expectedMonth) {
+             txDate.setDate(0);
+          }
+        }
+
+        const padZeros = (num: number) => num.toString().padStart(2, '0');
+        const payload: Transaction = {
+            userId,
+            description: actualInstallments > 1 ? `${addDesc} (${padZeros(i)}/${padZeros(actualInstallments)})` : addDesc,
+            amount: currentAmount,
+            date: txDate.getTime(),
+            type: addType,
+            category: addCat,
+            account: addType === 'expense' ? 'Conta' : '',
+            paymentMethod: addType === 'expense' ? (addMethod || 'Débito') : '',
+            card: addType === 'expense' && (addMethod === 'Crédito' || addMethod === 'Débito') ? addCard : undefined,
+            installments: actualInstallments > 1 ? actualInstallments : undefined,
+            installmentNumber: actualInstallments > 1 ? i : undefined,
+            groupId,
+            createdAt: Date.now()
+        };
+        await addDoc(collection(db, 'transactions'), payload);
+      }
       resetAddForm();
     } catch (e) {
       handleFirestoreError(e, OperationType.CREATE, 'transactions');
@@ -71,18 +109,18 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
           </div>
         </div>
 
-        <div className="flex flex-wrap @4xl:flex-nowrap w-full items-end gap-3 relative z-10 pl-2 pr-1">
-           <div className="flex flex-col gap-1.5 w-[130px] shrink-0">
+        <div className="flex flex-wrap items-end justify-between gap-y-4 gap-x-3 w-full relative z-10 pl-2 pr-1">
+           <div className="flex flex-col gap-1.5 w-full @[500px]:w-[110px] shrink-0">
              <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1">Data</label>
              <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)} className="w-full bg-gray-50/80 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none dark:[&::-webkit-calendar-picker-indicator]:invert shadow-sm transition-all hover:bg-white dark:hover:bg-[#18181b] focus:bg-white dark:focus:bg-[#18181b]" />
            </div>
            
-           <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+           <div className="flex flex-col gap-1.5 flex-[1_1_180px]">
              <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1">Descrição</label>
              <input type="text" placeholder="Ex: Mercado, Conta de Luz..." value={addDesc} onChange={e => setAddDesc(e.target.value)} className="w-full bg-gray-50/80 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none placeholder:text-gray-400 shadow-sm transition-all hover:bg-white dark:hover:bg-[#18181b] focus:bg-white dark:focus:bg-[#18181b]" />
            </div>
            
-           <div className="flex flex-col gap-1.5 w-full @4xl:w-[140px] shrink-0">
+           <div className="flex flex-col gap-1.5 flex-[1_1_130px]">
              <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1">Categoria</label>
              <select value={addCat} onChange={e => setAddCat(e.target.value)} className="w-full bg-gray-50/80 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none shadow-sm transition-all hover:bg-white dark:hover:bg-[#18181b] focus:bg-white dark:focus:bg-[#18181b] font-medium">
                <option value="" disabled>Selecione...</option>
@@ -90,26 +128,16 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
              </select>
            </div>
            
-           <div className="flex flex-col gap-1.5 w-full @4xl:w-[130px] shrink-0 relative">
-             <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1">{addType === 'expense' ? 'Conta' : 'Destino'}</label>
+           <div className="flex flex-col gap-1.5 flex-[1_1_110px]">
+             <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1">Método</label>
              {addType === 'expense' ? (
-               <div className="flex flex-col gap-1 w-full relative">
-                 <select value={addMethod} onChange={e => setAddMethod(e.target.value)} className="w-full bg-gray-50/80 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none shadow-sm transition-all hover:bg-white dark:hover:bg-[#18181b] focus:bg-white dark:focus:bg-[#18181b] font-medium">
-                   <option value="" disabled>Método...</option>
-                   <option value="Débito">Débito</option>
-                   <option value="Crédito">Crédito</option>
-                   <option value="Pix">Pix</option>
-                   <option value="Dinheiro">Dinheiro</option>
-                 </select>
-                 {(addMethod === 'Crédito' || addMethod === 'Débito') && (
-                   <div className="absolute top-full left-0 w-[150%] z-20 pt-1">
-                     <select value={addCard} onChange={e => setAddCard(e.target.value)} className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-500/30 dark:border-emerald-500/30 rounded-lg px-3 py-2 text-[11px] focus:border-emerald-500 focus:outline-none shadow-lg animate-in fade-in slide-in-from-top-1 transition-all text-emerald-800 dark:text-emerald-200 font-medium">
-                       <option value="" disabled>Cartão...</option>
-                       {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
-                     </select>
-                   </div>
-                 )}
-               </div>
+                <select value={addMethod} onChange={e => setAddMethod(e.target.value)} className="w-full bg-gray-50/80 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none shadow-sm transition-all hover:bg-white dark:hover:bg-[#18181b] focus:bg-white dark:focus:bg-[#18181b] font-medium">
+                  <option value="" disabled>Método...</option>
+                  <option value="Débito">Débito</option>
+                  <option value="Crédito">Crédito</option>
+                  <option value="Pix">Pix</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                </select>
              ) : (
                <div className="h-[34px] flex items-center px-3 border border-dashed border-gray-200 dark:border-white/5 rounded-xl bg-gray-50/30 dark:bg-white/[0.01]">
                   <span className="text-gray-400 text-xs italic opacity-70">N/A</span>
@@ -117,20 +145,39 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
              )}
            </div>
 
-           <div className="flex items-end shrink-0 w-full @4xl:w-auto mt-2 @4xl:mt-0 justify-end h-full relative">
-             
-             <div className="flex items-end gap-2 border-t @4xl:border-t-0 @4xl:border-l border-gray-100 dark:border-white/5 pt-3 @4xl:pt-0 @4xl:pl-4 @4xl:ml-2">
-               <div className="flex flex-col gap-1.5 w-full @4xl:w-[130px]">
-                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1 text-right">Valor</label>
+           {addType === 'expense' && (addMethod === 'Crédito' || addMethod === 'Débito') && (
+             <div className="flex flex-col gap-1.5 flex-[1_1_150px] animate-in fade-in slide-in-from-left-2">
+               <label className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider pl-1">
+                 Cartão {addMethod === 'Crédito' && <span className="opacity-70">/ Parc.</span>}
+               </label>
+               <div className="flex gap-1.5 w-full">
+                 <select value={addCard} onChange={e => setAddCard(e.target.value)} className="flex-1 min-w-[80px] bg-emerald-50/80 dark:bg-emerald-900/10 border border-emerald-500/30 rounded-xl px-2 py-2 text-xs focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none shadow-sm transition-all font-medium text-emerald-800 dark:text-emerald-300">
+                   <option value="" disabled>Cartão...</option>
+                   {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
+                 </select>
+                 {addMethod === 'Crédito' && (
+                   <div className="relative shrink-0 w-[60px]">
+                     <input type="number" min="1" max="48" value={addInstallments} onChange={e => setAddInstallments(Number(e.target.value) || 1)} className="w-full bg-emerald-50/80 dark:bg-emerald-900/10 border border-emerald-500/30 rounded-xl pl-2 pr-4 py-2 text-xs text-center focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 focus:outline-none shadow-sm transition-all font-medium text-emerald-800 dark:text-emerald-300" placeholder="1" title="Parcelas" />
+                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600/50 dark:text-emerald-400/50 pointer-events-none">x</span>
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
+
+           <div className="flex items-end flex-[1.5_1_220px] relative min-w-[200px]">
+             <div className="flex items-end gap-2 w-full">
+               <div className="flex flex-col gap-1.5 flex-1 relative w-full">
+                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-1">Valor</label>
                  <div className="relative">
                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-mono">R$</span>
                    <input type="number" step="0.01" placeholder="0.00" value={addAmount} onChange={e => setAddAmount(e.target.value)} className={`w-full pl-8 pr-3 py-2 text-right bg-white dark:bg-[#18181b] border rounded-xl text-sm font-mono focus:outline-none placeholder:text-gray-300 shadow-sm font-black transition-all ${addAmount ? (addType === 'expense' ? 'border-red-400 text-red-600 focus:ring-1 focus:ring-red-500/50' : 'border-emerald-400 text-emerald-600 focus:ring-1 focus:ring-emerald-500/50') : 'border-gray-200 dark:border-white/10 focus:border-gray-300 dark:focus:border-white/20 text-gray-900 dark:text-white'}`} />
                  </div>
                </div>
                
-               <div className="flex items-center gap-1.5 h-[36px] shrink-0">
-                 <button onClick={handleQuickAdd} disabled={!addDesc || !addAmount || !addCat} className="h-full px-3.5 flex items-center justify-center rounded-xl bg-emerald-500 text-emerald-950 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:text-gray-400 hover:bg-emerald-400 transition-all shadow-[0_4px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:shadow-none disabled:hover:translate-y-0 disabled:border overflow-hidden group/btn font-bold text-xs" title="Salvar Transação">
-                   <span className="hidden @5xl:inline mr-1.5">Salvar</span>
+               <div className="flex items-center gap-1.5 h-[36px] shrink-0 self-end">
+                 <button onClick={handleQuickAdd} disabled={isAddDisabled} className="h-full px-3.5 flex items-center justify-center rounded-xl bg-emerald-500 text-emerald-950 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:text-gray-400 hover:bg-emerald-400 transition-all shadow-[0_4px_10px_rgba(16,185,129,0.2)] hover:shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:shadow-none disabled:hover:translate-y-0 disabled:border overflow-hidden group/btn font-bold text-xs" title="Salvar">
+                   <span className="hidden @[800px]:inline mr-1.5">Salvar</span>
                    <Check className="w-4 h-4 transition-transform group-hover/btn:scale-110" strokeWidth={3} />
                  </button>
                  {addDesc || addAmount !== '' ? (
@@ -172,7 +219,7 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
               <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)} className="w-full bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-medium focus:border-emerald-500 focus:bg-white dark:focus:bg-[#18181b] transition-colors focus:outline-none dark:[&::-webkit-calendar-picker-indicator]:invert shadow-sm hover:bg-white dark:hover:bg-[#18181b]" />
             </div>
             <div className="flex flex-col gap-1.5 relative">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 text-right">Valor</label>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Valor</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-mono text-xs">R$</span>
                 <input type="number" step="0.01" placeholder="0.00" value={addAmount} onChange={e => setAddAmount(e.target.value)} className={`w-full bg-white dark:bg-[#18181b] border rounded-xl pl-8 pr-3 py-2.5 text-sm font-mono focus:outline-none font-black shadow-sm transition-all focus:ring-1 ${addAmount ? (addType === 'expense' ? 'text-red-600 border-red-300 focus:border-red-500 focus:ring-red-500/50' : 'text-emerald-600 border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500/50') : 'text-gray-900 dark:text-white border-gray-200 dark:border-white/10 focus:border-gray-300 dark:focus:border-white/20'}`} />
@@ -215,15 +262,21 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
         </div>
         
         {addType === 'expense' && (addMethod === 'Crédito' || addMethod === 'Débito') && (
-           <div className="flex flex-col z-10 w-full animate-in fade-in slide-in-from-top-2 duration-200 mt-1">
-             <select value={addCard} onChange={e => setAddCard(e.target.value)} className="w-full bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-bold text-emerald-800 dark:text-emerald-400 focus:border-emerald-500 focus:bg-emerald-100/50 dark:focus:bg-emerald-900/30 transition-colors focus:outline-none shadow-sm">
-               <option value="" disabled>Selecione o Cartão</option>
+           <div className="flex gap-2 z-10 w-full animate-in fade-in slide-in-from-top-2 duration-200 mt-1">
+             <select value={addCard} onChange={e => setAddCard(e.target.value)} className="flex-1 min-w-[100px] bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-500/30 rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-400 focus:border-emerald-500 focus:bg-emerald-100/50 dark:focus:bg-emerald-900/30 transition-colors focus:outline-none shadow-sm">
+               <option value="" disabled>Cartão...</option>
                {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
              </select>
+             {addMethod === 'Crédito' && (
+                 <div className="relative shrink-0 w-[70px]">
+                   <input type="number" min="1" max="48" value={addInstallments} onChange={e => setAddInstallments(Number(e.target.value) || 1)} placeholder="1" className="w-full bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-500/30 rounded-xl pl-3 pr-6 py-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-400 focus:border-emerald-500 focus:bg-emerald-100/50 dark:focus:bg-emerald-900/30 transition-colors focus:outline-none shadow-sm text-center" />
+                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600/50 dark:text-emerald-400/50 pointer-events-none">x</span>
+                 </div>
+             )}
            </div>
         )}
         
-        <button onClick={handleQuickAdd} disabled={!addDesc || !addAmount || !addCat} className="w-full mt-3 z-10 bg-emerald-500 text-black py-3.5 rounded-xl font-black uppercase tracking-wider text-[11px] disabled:opacity-50 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-white/5 dark:disabled:text-gray-500 disabled:shadow-none disabled:border disabled:border-gray-200 dark:disabled:border-white/10 hover:bg-emerald-400 transition-all shadow-[0_4px_14px_rgba(16,185,129,0.4)] active:scale-[0.98] flex items-center justify-center gap-2 group/addbtn">
+        <button onClick={handleQuickAdd} disabled={isAddDisabled} className="w-full mt-3 z-10 bg-emerald-500 text-black py-3.5 rounded-xl font-black uppercase tracking-wider text-[11px] disabled:opacity-50 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-white/5 dark:disabled:text-gray-500 disabled:shadow-none disabled:border disabled:border-gray-200 dark:disabled:border-white/10 hover:bg-emerald-400 transition-all shadow-[0_4px_14px_rgba(16,185,129,0.4)] active:scale-[0.98] flex items-center justify-center gap-2 group/addbtn">
            <Check className="w-4 h-4 transition-transform group-hover/addbtn:scale-110" strokeWidth={3} /> <span>Salvar Transação</span>
         </button>
       </div>

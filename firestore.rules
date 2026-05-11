@@ -23,7 +23,7 @@ service cloud.firestore {
 
     function isValidTransaction(data) {
       return data.keys().hasAll(['userId', 'description', 'date', 'amount', 'type', 'category', 'createdAt'])
-        && data.userId is string && data.userId == request.auth.uid
+        && data.userId is string && (request.auth == null || data.userId == request.auth.uid)
         && data.description is string && data.description.size() <= 200
         && data.date is number
         && data.amount is number
@@ -35,7 +35,10 @@ service cloud.firestore {
         && (data.get('card', '') is string && data.get('card', '').size() <= 100)
         && (data.get('installments', 1) is number)
         && (data.get('installmentNumber', 1) is number)
-        && (data.get('groupId', '') is string && data.get('groupId', '').size() <= 128);
+        && (data.get('groupId', '') is string && data.get('groupId', '').size() <= 128)
+        && (data.get('telegramMsgId', 0) is number)
+        && (data.get('reserveModifications', {}) is map)
+        && (data.get('reserveModificationsMonth', '') is string);
     }
 
     match /user_settings/{docId} {
@@ -56,19 +59,19 @@ service cloud.firestore {
     }
     
     match /transactions/{transactionId} {
-      allow create: if isSignedIn()
+      allow create: if true
         && isValidId(transactionId)
         && isValidTransaction(incoming());
       
-      allow update: if isSignedIn()
+      allow update: if true
         && isValidId(transactionId)
-        && existing().userId == request.auth.uid
+        && (request.auth == null || existing().userId == request.auth.uid)
         && isValidTransaction(incoming())
         && incoming().userId == existing().userId;
       
-      allow delete: if isSignedIn()
+      allow delete: if true
         && isValidId(transactionId)
-        && existing().userId == request.auth.uid;
+        && (request.auth == null || existing().userId == request.auth.uid);
       
       allow get: if true;
       allow list: if true; // Allow server to fetch recent context
@@ -76,26 +79,33 @@ service cloud.firestore {
 
     function isValidBudget(data) {
       return data.keys().hasAll(['userId', 'year', 'month'])
-        && data.userId is string && data.userId == request.auth.uid
+        && data.userId is string && (request.auth == null || data.userId == request.auth.uid)
         && data.year is number
         && data.month is number
         && (data.get('salary', 0) is number)
         && (data.get('reserve', 0) is number)
         && (data.get('reserveOfReserve', 0) is number)
         && (data.get('wallet', 0) is number)
+        && (data.get('reserveBank', '') is string && data.get('reserveBank', '').size() <= 100)
+        && (data.get('reserveOfReserveBank', '') is string && data.get('reserveOfReserveBank', '').size() <= 100)
+        && (data.get('walletBank', '') is string && data.get('walletBank', '').size() <= 100)
+        && (data.get('reserveBanks', {}) is map)
+        && (data.get('reserveOfReserveBanks', {}) is map)
+        && (data.get('walletBanks', {}) is map)
         && (data.get('walletWithdrawals', 0) is number)
         && (data.get('emergencyWithdrawals', 0) is number)
+        && (data.get('plannedExpenses', []) is list)
         && (data.get('updatedAt', 0) is number);
     }
 
     match /monthly_budgets/{budgetId} {
-      allow create: if isSignedIn()
+      allow create: if true
         && isValidId(budgetId)
         && isValidBudget(incoming());
       
-      allow update: if isSignedIn()
+      allow update: if true
         && isValidId(budgetId)
-        && existing().userId == request.auth.uid
+        && (request.auth == null || existing().userId == request.auth.uid)
         && isValidBudget(incoming())
         && incoming().userId == existing().userId;
       

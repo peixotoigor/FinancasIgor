@@ -320,7 +320,7 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
                 return (
                 <div key={t.id} onClick={(e) => { e.stopPropagation(); onEdit && onEdit(t); }} className={`${rowBgClass} flex items-center justify-between p-3 sm:p-4 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-gray-100 dark:hover:border-white/5`}>
                    <div className="flex flex-col min-w-0 pr-2">
-                      <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{t.description} {t.installments ? <span className="opacity-50 text-[10px] bg-gray-200 dark:bg-white/10 px-1 rounded ml-2 font-semibold uppercase tracking-widest">Parcelado</span> : ''}</span>
+                      <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{t.description} {t.installments ? <span className="opacity-50 text-[10px] bg-gray-200 dark:bg-white/10 px-1 rounded ml-2 font-semibold uppercase tracking-widest">{t.installmentNumber}/{t.installments}</span> : ''}</span>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                          <span className="text-[10px] text-gray-500 shrink-0">
                             {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}

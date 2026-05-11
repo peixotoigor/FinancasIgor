@@ -13,12 +13,27 @@ export interface Transaction {
   installmentNumber?: number;
   groupId?: string;
   createdAt: number;
+  reserveModificationsMonth?: string;
+  reserveModifications?: {
+    walletWithdrawals?: number;
+    emergencyWithdrawals?: number;
+    reserve?: number;
+    walletAdd?: number;
+  };
 }
 
 export interface PlannedExpense {
   id: string;
   description: string;
   amount: number;
+}
+
+export interface Withdrawal {
+  id: string;
+  description: string;
+  amount: number;
+  date: number;
+  bank?: string;
 }
 
 export interface MonthlyBudget {
@@ -30,8 +45,16 @@ export interface MonthlyBudget {
   reserve: number;
   reserveOfReserve: number;
   wallet: number;
+  reserveBank?: string;
+  reserveOfReserveBank?: string;
+  walletBank?: string;
+  reserveBanks?: Record<string, number>;
+  walletBanks?: Record<string, number>;
+  reserveOfReserveBanks?: Record<string, number>;
   walletWithdrawals: number;
   emergencyWithdrawals: number;
+  walletWithdrawalsDetails?: Withdrawal[];
+  emergencyWithdrawalsDetails?: Withdrawal[];
   plannedExpenses?: PlannedExpense[];
   updatedAt: number;
 }

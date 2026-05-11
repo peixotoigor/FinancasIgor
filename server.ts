@@ -3,7 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, where, setDoc, limit } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, where, setDoc, limit, updateDoc } from 'firebase/firestore';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 
@@ -16,7 +16,7 @@ const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'fire
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 
-const ai = new GoogleGenAI({ apiKey: 'AIzaSyAEh9nDKoNx3PXgzHB3yGUZVzC_S1Sp8zo' });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 async function startServer() {
   const app = express();
@@ -24,8 +24,80 @@ async function startServer() {
 
   app.use(express.json());
 
-  const processTelegramPayload = async (tgMessage: any, botToken: string) => {
+  const processTelegramPayload = async (update: any, botToken: string) => {
     try {
+      if (update.callback_query) {
+         const cb = update.callback_query;
+         const cbData = cb.data;
+         const telegramChatId = cb.message.chat.id;
+         const messageId = cb.message.message_id;
+
+         if (cbData.startsWith('undo_')) {
+             const txMsgId = Number(cbData.split('_')[1]);
+             
+             // First acknowledge the callback
+             fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ callback_query_id: cb.id, text: 'Desfazendo transação...' })
+             });
+
+             const tgDoc = await getDoc(doc(db, 'telegram_users', String(telegramChatId)));
+             if (!tgDoc.exists()) return;
+             const cbUserId = tgDoc.data().userId;
+
+             // We only delete from 'transactions' where telegramMsgId == txMsgId and userId == cbUserId
+             const qTx = query(collection(db, 'transactions'), where('userId', '==', cbUserId), where('telegramMsgId', '==', txMsgId));
+             const snaps = await getDocs(qTx);
+             let deletedCount = 0;
+             let undoReserveMods: any = null;
+             let undoReserveMonth: string | null = null;
+             
+             for (const docSnap of snaps.docs) {
+                 const data = docSnap.data();
+                 if (data.reserveModifications && data.reserveModificationsMonth) {
+                     undoReserveMods = data.reserveModifications;
+                     undoReserveMonth = data.reserveModificationsMonth;
+                 }
+                 await deleteDoc(docSnap.ref);
+                 deletedCount++;
+             }
+
+             if (undoReserveMods && undoReserveMonth && snaps.docs.length > 0) {
+                 const userId = snaps.docs[0].data().userId;
+                 const budgetRef = doc(db, 'monthly_budgets', `${userId}_${undoReserveMonth}`);
+                 const bSnap = await getDoc(budgetRef);
+                 if (bSnap.exists()) {
+                    const b = bSnap.data();
+                    const undoData: any = { updatedAt: Date.now() };
+                    if (undoReserveMods.walletWithdrawals) undoData.walletWithdrawals = (b.walletWithdrawals || 0) - undoReserveMods.walletWithdrawals;
+                    if (undoReserveMods.emergencyWithdrawals) undoData.emergencyWithdrawals = (b.emergencyWithdrawals || 0) - undoReserveMods.emergencyWithdrawals;
+                    if (undoReserveMods.reserve) undoData.reserve = (b.reserve || 0) + undoReserveMods.reserve;
+                    if (undoReserveMods.walletAdd) undoData.wallet = (b.wallet || 0) - undoReserveMods.walletAdd;
+                    await updateDoc(budgetRef, undoData);
+                 }
+             }
+
+             if (deletedCount > 0) {
+                 await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: telegramChatId, message_id: messageId, text: `✅ Transação de origem desfeita com sucesso (${deletedCount} registro(s) apagado(s)).`, reply_markup: { inline_keyboard: [] } })
+                 });
+             } else {
+                 await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: telegramChatId, message_id: messageId, text: `⚠️ Não consegui encontrar a transação para desfazer (pode já ter sido apagada).`, reply_markup: { inline_keyboard: [] } })
+                 });
+             }
+         }
+         return;
+      }
+
+      const tgMessage = update.message || update.edited_message;
+      if (!tgMessage) return;
+
       const telegramChatId = tgMessage.chat.id;
       let text = tgMessage.text || tgMessage.caption || '';
       let voiceId = tgMessage.voice?.file_id || tgMessage.audio?.file_id;
@@ -33,10 +105,27 @@ async function startServer() {
       let userId = null;
 
       const sendMessage = async (msgParams: any) => {
-         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+         const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: telegramChatId, ...msgParams })
+         });
+         return res.json();
+      };
+
+      const editMessage = async (msgParams: any) => {
+         await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: telegramChatId, ...msgParams })
+         });
+      };
+      
+      const sendAction = async (action: string) => {
+         await fetch(`https://api.telegram.org/bot${botToken}/sendChatAction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: telegramChatId, action })
          });
       };
       
@@ -47,6 +136,10 @@ async function startServer() {
 
       if (text) {
          const lowerText = text.trim().toLowerCase();
+         if (lowerText === '/start' || lowerText === '/help' || lowerText === '/ajuda') {
+             await sendMessage({ text: '👋 Olá! Bem-vindo ao seu Assistente Financeiro.\n\nVocê pode me mandar mensagens de texto ou áudio relatando seus ganhos e gastos, por exemplo:\n🗣️ "Comprei um almoço por 35 reais no crédito"\n🗣️ "Recebi 1500 do freela de design pelo pix"\n\nOutros comandos:\n/saldo - Ver seu resumo financeiro atual' });
+             return;
+         }
          if (lowerText === '/ping' || lowerText === '/status' || lowerText === 'está ativo?' || lowerText === 'esta ativo?' || lowerText === 'voce esta ativo?') {
              await sendMessage({ text: '✅ Sim, estou ativo e pronto para registrar suas finanças!' });
              return;
@@ -74,6 +167,16 @@ async function startServer() {
           userId = tgData.userId;
       }
 
+      // Indicate processing
+      await sendAction('typing');
+      let processingMsgId: number | null = null;
+      try {
+         const processingMsg = await sendMessage({ text: '⏳ Processando e extraindo dados...' });
+         if (processingMsg && processingMsg.result) {
+            processingMsgId = processingMsg.result.message_id;
+         }
+      } catch (err) {}
+
       // Fetch Context (Settings & Recent Transactions)
       let userSettings: any = {};
       let recentTransactions: any[] = [];
@@ -88,6 +191,9 @@ async function startServer() {
       let netAccWallet = 0;
       let accReserveOfReserve = 0;
       let totalAcc = 0;
+      
+      let currentMonthBudget: any = null;
+      let currentMonthBudgetDocId: string | null = null;
 
       const now = new Date();
       const currentMonth = now.getMonth();
@@ -122,9 +228,13 @@ async function startServer() {
       let accWallet = 0;
       let accWalletWithdrawals = 0;
       let accEmergencyWithdrawals = 0;
-      
+
       budgetSnaps.forEach(docSnap => {
           const b = docSnap.data();
+          if (b.month === currentMonth + 1) {
+              currentMonthBudget = b;
+              currentMonthBudgetDocId = docSnap.id;
+          }
           if (b.month <= currentMonth + 1) { // month is 1-indexed in DB
              accReserve += Number(b.reserve || 0);
              accReserveOfReserve += Number(b.reserveOfReserve || 0);
@@ -182,6 +292,30 @@ async function startServer() {
          console.error('Error fetching context', e);
       }
 
+      if (text) {
+          const lowerText = text.trim().toLowerCase();
+          if (lowerText === '/saldo' || lowerText === '/resumo') {
+              const bFormat = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+              const saldoMsg = `📊 <b>Seu Resumo Financeiro</b>\n\n` +
+                               `🔸 <b>Mês Atual (${currentMonth + 1}/${currentYear}):</b>\n` +
+                               `   Receitas: +${bFormat(currentMonthIncome)}\n` +
+                               `   Despesas: -${bFormat(currentMonthExpense)}\n` +
+                               `   Saldo do Mês: ${bFormat(totalBalance)}\n\n` +
+                               `🔸 <b>Suas Reservas (Acumulado):</b>\n` +
+                               `   Carteira (Física/Pix): ${bFormat(netAccWallet)}${currentMonthBudget?.walletBank ? ` (${currentMonthBudget.walletBank})` : ''}\n` +
+                               `   Reserva (Livre): ${bFormat(netAccReserve)}${currentMonthBudget?.reserveBank ? ` (${currentMonthBudget.reserveBank})` : ''}\n` +
+                               `   Reserva de Emergência: ${bFormat(accReserveOfReserve)}${currentMonthBudget?.reserveOfReserveBank ? ` (${currentMonthBudget.reserveOfReserveBank})` : ''}\n` +
+                               `   <b>Total Guardado:</b> ${bFormat(totalAcc)}`;
+              
+              if (processingMsgId) {
+                  await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: saldoMsg });
+              } else {
+                  await sendMessage({ parse_mode: 'HTML', text: saldoMsg });
+              }
+              return;
+          }
+      }
+
       let promptContents: any[] = [];
       const prompt = `
 Você é um assistente financeiro inteligente e analítico, especializado em classificar transações a partir de linguagem natural E em responder perguntas sobre as finanças do usuário.
@@ -201,13 +335,22 @@ O JSON deve ter esta estrutura:
 == REGRAS PARA REGISTRO DE TRANSAÇÃO ==
 Se, e SOMENTE SE, a intenção do usuário for claramente registrar um gasto ou ganho, e um valor monetário estiver presente ou claramente implícito, extraia as seguintes propriedades para o JSON, omitindo o "isQuestion":
 - "description" (string): Nome do serviço/estabelecimento.
-- "amount" (number): Valor em formato de número. Se o usuário não informar o valor, RETORNE UM JSON DE PERGUNTA informando que o valor está faltando. NUNCA invente valores (como R$ 300,00).
+- "amount" (number): Valor em formato de número. Se o usuário não informar o valor, RETORNE UM JSON DE PERGUNTA informando que o valor está faltando. NUNCA invente valores.
 - "type" (string): "expense" ou "income".
 - "category" (string): OBRIGATORIAMENTE UMA DA LISTA "Categorias de Gastos/Ganhos Atuais".
-- "account": A conta usada.
+- "account": A conta/banco informado (OBRIGATÓRIO para carteira/reservas).
 - "paymentMethod": "Pix", "Crédito", "Débito", "Dinheiro" ou "Boleto".
 - "installments": Inteiro numérico. Retorne 1 se não for parcelado.
 - "card": Qual cartão foi usado, se "Crédito"/"Débito".
+- "modifyWalletTarget": "wallet" (carteira/pix), "reserve" (reserva principal), ou "emergency" (reserva de emergência). Omitir se não tiver uso de reservas.
+- "modifyWalletAction": "add" (adicionar valor) ou "subtract" (diminuir valor). Omitir se a transação não envolver carteira/reservas de forma explícita, MAS caso seja dinheiro em espécie físico sem indicar o alvo, considere "wallet".
+
+== REGRAS PARA CARTEIRA, RESERVAS E BANCOS ==
+Se houver "modifyWalletAction" ("add" ou "subtract"):
+A sua resposta DEVE verificar se a "account" ou o nome do banco/conta foi explicitamente especificado.
+Se o banco/conta NÃO FOI MENCIONADO (por exemplo, "guardei 100 na reserva" ou "tirei 50 da carteira"), RETORNE UM JSON DE PERGUNTA informando a falta do banco:
+{"isQuestion": true, "answer": "De qual banco/conta é esse valor? Por favor, envie novamente informando o banco (ex: 'Guardei 100 na reserva do Nubank' ou 'Tirei 50 da carteira do Itaú')."}
+NÃO retorne as propriedades de transação, retorne APENAS a pergunta!
 
 == CONTEXTO DO USUÁRIO ==
 🔹 Categorias de Gastos Atuais: [${(userSettings.categories || []).join(', ')}]
@@ -219,9 +362,9 @@ Se, e SOMENTE SE, a intenção do usuário for claramente registrar um gasto ou 
 🔹 Despesas deste Mês (${currentMonth + 1}/${currentYear}): R$ ${currentMonthExpense.toFixed(2)}
 🔹 Receitas deste Mês (${currentMonth + 1}/${currentYear}): R$ ${currentMonthIncome.toFixed(2)}
 🔹 Reservas / Guardados:
-- Reserva (Livre): R$ ${netAccReserve.toFixed(2)}
-- Carteira Física: R$ ${netAccWallet.toFixed(2)}
-- Reserva de Emergência: R$ ${accReserveOfReserve.toFixed(2)}
+- Reserva (Livre): R$ ${netAccReserve.toFixed(2)}${currentMonthBudget?.reserveBank ? ` (${currentMonthBudget.reserveBank})` : ''}
+- Carteira Física: R$ ${netAccWallet.toFixed(2)}${currentMonthBudget?.walletBank ? ` (${currentMonthBudget.walletBank})` : ''}
+- Reserva de Emergência: R$ ${accReserveOfReserve.toFixed(2)}${currentMonthBudget?.reserveOfReserveBank ? ` (${currentMonthBudget.reserveOfReserveBank})` : ''}
 - Total Acumulado Guardado: R$ ${totalAcc.toFixed(2)}
 🔹 Saldo por Contas:
 ${Object.entries(accountBalances).map(([acc, bal]) => `- ${acc}: R$ ${bal.toFixed(2)}`).join('\n') || "Sem contas."}
@@ -359,7 +502,11 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
            }
            
            const errMsg = `Ops, a inteligência artificial enfrentou um problema técnico e não pôde processar a mensagem.\n\n<b>Motivo:</b> ${detail}`;
-           await sendMessage({ parse_mode: 'HTML', text: errMsg });
+           if (processingMsgId) {
+               await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: errMsg });
+           } else {
+               await sendMessage({ parse_mode: 'HTML', text: errMsg });
+           }
            return;
          }
       }
@@ -373,12 +520,23 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
       } catch (err: any) {
          console.error('JSON Parse Error. String was:\n', jsonStr);
          const errMsg = `Não consegui entender a requisição perfeitamente. Diga algo como "Gastei 25 reais em mercado" ou pergunte seu saldo.`;
-         await sendMessage({ text: errMsg });
+         if (processingMsgId) {
+             await editMessage({ message_id: processingMsgId, text: errMsg });
+         } else {
+             await sendMessage({ text: errMsg });
+         }
          return;
       }
 
       if (data.isQuestion) {
-         await sendMessage({ parse_mode: 'Markdown', text: data.answer || "Não consegui formular uma resposta." });
+         let ans = data.answer || "Não consegui formular uma resposta.";
+         ans = ans.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+         ans = ans.replace(/\*(.*?)\*/g, '<i>$1</i>');
+         if (processingMsgId) {
+            await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: ans });
+         } else {
+            await sendMessage({ parse_mode: 'HTML', text: ans });
+         }
          return;
       }
 
@@ -388,6 +546,158 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
       const parsedAmount = data.amount || 0;
       let installments = data.installments || 1;
       installments = typeof installments === 'number' && installments > 0 ? installments : 1;
+      let modifyWalletTarget = data.modifyWalletTarget || null;
+      let modifyWalletAction = data.modifyWalletAction || null;
+      if (!modifyWalletTarget && !modifyWalletAction) {
+           const method = data.paymentMethod?.toLowerCase() || '';
+           if (method === 'pix' || method === 'dinheiro') {
+                modifyWalletTarget = 'wallet';
+                modifyWalletAction = isIncome ? 'add' : 'subtract';
+           }
+      }
+      
+      let walletModifierText = '';
+      let reserveModifications: any = null;
+
+      if (modifyWalletAction === 'subtract' && modifyWalletTarget) {
+           let amountFromWallet = 0;
+           let amountFromReserve = 0;
+           let amountFromEmergency = 0;
+           
+           const bFormat = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+           if (modifyWalletTarget === 'emergency') {
+               amountFromEmergency = parsedAmount;
+               walletModifierText = `\n<b>🚨 Saque Emergencial${data.account ? ` (${data.account})` : ''}:</b> -${bFormat(amountFromEmergency)}`;
+           } else if (modifyWalletTarget === 'reserve') {
+               amountFromReserve = parsedAmount;
+               walletModifierText = `\n<b>🏦 Saída da Reserva Principal${data.account ? ` (${data.account})` : ''}:</b> -${bFormat(amountFromReserve)}`;
+           } else {
+               amountFromWallet = parsedAmount;
+               walletModifierText = `\n<b>🏧 Saída de Carteira${data.account ? ` (${data.account})` : ''}:</b> -${bFormat(amountFromWallet)}`;
+           }
+
+           const newWalletWithdrawals = (currentMonthBudget?.walletWithdrawals || 0) + amountFromWallet;
+           const newEmergencyWithdrawals = (currentMonthBudget?.emergencyWithdrawals || 0) + amountFromEmergency;
+           const newReserve = (currentMonthBudget?.reserve || 0) - amountFromReserve;
+           
+           const newPayload: any = { userId, year: currentYear, month: currentMonth + 1, updatedAt: Date.now() };
+           
+           if (amountFromWallet > 0) {
+               newPayload.walletWithdrawals = newWalletWithdrawals;
+               newPayload.walletWithdrawalsDetails = [
+                   ...(currentMonthBudget?.walletWithdrawalsDetails || []),
+                   {
+                       id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+                       description: data.description || 'Retirada via Assistente',
+                       amount: amountFromWallet,
+                       date: Date.now()
+                   }
+               ];
+               if (data.account) {
+                   const walletBanks = currentMonthBudget?.walletBanks || {};
+                   const newBankAmt = Math.max(0, (walletBanks[data.account] || 0) - amountFromWallet);
+                   walletBanks[data.account] = newBankAmt;
+                   newPayload.walletBanks = walletBanks;
+                   walletModifierText += `\n   ↳ Saldo em ${data.account}: ${bFormat(newBankAmt)}`;
+               }
+               walletModifierText += `\n   ↳ Total na Carteira (Acumulado): ${bFormat(netAccWallet - amountFromWallet)}`;
+           }
+           if (amountFromEmergency > 0) {
+               newPayload.emergencyWithdrawals = newEmergencyWithdrawals;
+               newPayload.emergencyWithdrawalsDetails = [
+                   ...(currentMonthBudget?.emergencyWithdrawalsDetails || []),
+                   {
+                       id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+                       description: data.description || 'Retirada via Assistente',
+                       amount: amountFromEmergency,
+                       date: Date.now()
+                   }
+               ];
+               if (data.account) {
+                   const emergencyBanks = currentMonthBudget?.reserveOfReserveBanks || {};
+                   const newBankAmt = Math.max(0, (emergencyBanks[data.account] || 0) - amountFromEmergency);
+                   emergencyBanks[data.account] = newBankAmt;
+                   newPayload.reserveOfReserveBanks = emergencyBanks;
+                   walletModifierText += `\n   ↳ Saldo em ${data.account}: ${bFormat(newBankAmt)}`;
+               }
+               walletModifierText += `\n   ↳ Total Reserva Emergência (Acumulado): ${bFormat(accReserveOfReserve - amountFromEmergency)}`;
+           }
+           if (amountFromReserve > 0) {
+               newPayload.reserve = newReserve;
+               if (data.account) {
+                  const reserveBanks = currentMonthBudget?.reserveBanks || {};
+                  const newBankAmt = Math.max(0, (reserveBanks[data.account] || 0) - amountFromReserve);
+                  reserveBanks[data.account] = newBankAmt;
+                  newPayload.reserveBanks = reserveBanks;
+                  walletModifierText += `\n   ↳ Saldo em ${data.account}: ${bFormat(newBankAmt)}`;
+               }
+               walletModifierText += `\n   ↳ Total Reserva Livre (Acumulado): ${bFormat(netAccReserve - amountFromReserve)}`;
+           }
+           
+           reserveModifications = {
+               walletWithdrawals: amountFromWallet,
+               emergencyWithdrawals: amountFromEmergency,
+               reserve: amountFromReserve,
+           };
+
+           if (currentMonthBudgetDocId) {
+                const updateData: any = { updatedAt: Date.now() };
+                Object.assign(updateData, newPayload);
+                await updateDoc(doc(db, 'monthly_budgets', currentMonthBudgetDocId), updateData);
+           } else {
+                await setDoc(doc(db, 'monthly_budgets', `${userId}_${currentYear}_${currentMonth + 1}`), newPayload, { merge: true });
+           }
+      } else if (modifyWalletAction === 'add' && modifyWalletTarget) {
+           const newPayload: any = { userId, year: currentYear, month: currentMonth + 1, updatedAt: Date.now() };
+           reserveModifications = {};
+           
+           const bFormat = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+           if (modifyWalletTarget === 'reserve') {
+               newPayload.reserve = (currentMonthBudget?.reserve || 0) + parsedAmount;
+               walletModifierText = `\n<b>🏦 Adição na Reserva${data.account ? ` (${data.account})` : ''}:</b> +${bFormat(parsedAmount)}`;
+               reserveModifications.reserveAdd = parsedAmount;
+               if (data.account) {
+                   const reserveBanks = currentMonthBudget?.reserveBanks || {};
+                   const newBankAmt = (reserveBanks[data.account] || 0) + parsedAmount;
+                   reserveBanks[data.account] = newBankAmt;
+                   newPayload.reserveBanks = reserveBanks;
+                   walletModifierText += `\n   ↳ Saldo em ${data.account}: ${bFormat(newBankAmt)}`;
+               }
+               walletModifierText += `\n   ↳ Total Reserva Livre (Acumulado): ${bFormat(netAccReserve + parsedAmount)}`;
+           } else if (modifyWalletTarget === 'emergency') {
+               newPayload.reserveOfReserve = (currentMonthBudget?.reserveOfReserve || 0) + parsedAmount;
+               walletModifierText = `\n<b>🚨 Adição na Emergência${data.account ? ` (${data.account})` : ''}:</b> +${bFormat(parsedAmount)}`;
+               reserveModifications.emergencyAdd = parsedAmount;
+               if (data.account) {
+                   const emergencyBanks = currentMonthBudget?.reserveOfReserveBanks || {};
+                   const newBankAmt = (emergencyBanks[data.account] || 0) + parsedAmount;
+                   emergencyBanks[data.account] = newBankAmt;
+                   newPayload.reserveOfReserveBanks = emergencyBanks;
+                   walletModifierText += `\n   ↳ Saldo em ${data.account}: ${bFormat(newBankAmt)}`;
+               }
+               walletModifierText += `\n   ↳ Total Reserva Emergência (Acumulado): ${bFormat(accReserveOfReserve + parsedAmount)}`;
+           } else {
+               newPayload.wallet = (currentMonthBudget?.wallet || 0) + parsedAmount;
+               walletModifierText = `\n<b>🏧 Adição na Carteira${data.account ? ` (${data.account})` : ''}:</b> +${bFormat(parsedAmount)}`;
+               reserveModifications.walletAdd = parsedAmount;
+               if (data.account) {
+                   const walletBanks = currentMonthBudget?.walletBanks || {};
+                   const newBankAmt = (walletBanks[data.account] || 0) + parsedAmount;
+                   walletBanks[data.account] = newBankAmt;
+                   newPayload.walletBanks = walletBanks;
+                   walletModifierText += `\n   ↳ Saldo em ${data.account}: ${bFormat(newBankAmt)}`;
+               }
+               walletModifierText += `\n   ↳ Total na Carteira (Acumulado): ${bFormat(netAccWallet + parsedAmount)}`;
+           }
+           
+           if (currentMonthBudgetDocId) {
+                const updateData: any = { updatedAt: Date.now() };
+                Object.assign(updateData, newPayload);
+                await updateDoc(doc(db, 'monthly_budgets', currentMonthBudgetDocId), updateData);
+           } else {
+                await setDoc(doc(db, 'monthly_budgets', `${userId}_${currentYear}_${currentMonth + 1}`), newPayload, { merge: true });
+           }
+      }
       
       let finalCategory = data.category || 'Outros';
       const allowedCategories = isIncome ? (userSettings.incomeCategories || []) : (userSettings.categories || []);
@@ -412,7 +722,7 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
          }
       }
       
-      const payloadBase = {
+      const payloadBase: any = {
         userId,
         description: data.description || text || "Nova Transação",
         amount: parsedAmount,
@@ -422,8 +732,14 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
         paymentMethod: data.paymentMethod || 'Pix',
         card: data.card || '',
         date: Date.now(),
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        telegramMsgId: tgMessage.message_id
       };
+      
+      if (reserveModifications) {
+         payloadBase.reserveModifications = reserveModifications;
+         payloadBase.reserveModificationsMonth = `${currentYear}_${currentMonth + 1}`;
+      }
 
       if (installments > 1) {
         const groupId = crypto.randomUUID();
@@ -452,10 +768,12 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
               groupId,
            };
 
-           await addDoc(collection(db, 'inbox'), payload);
+           const docRef = doc(collection(db, 'transactions'));
+           await setDoc(docRef, payload);
         }
       } else {
-        await addDoc(collection(db, 'inbox'), payloadBase);
+        const docRef = doc(collection(db, 'transactions'));
+        await setDoc(docRef, payloadBase);
       }
 
       const amountFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parsedAmount);
@@ -470,15 +788,27 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
                              `<b>🏷 Categoria:</b> ${payloadBase.category}\n` +
                              `<b>💳 Método:</b> ${payloadBase.paymentMethod}` + 
                              (payloadBase.card ? ` (${payloadBase.card})` : '') +
+                             walletModifierText +
                              alertMessage;
 
-      await sendMessage({ parse_mode: 'HTML', text: successMessage });
+      const replyMarkup = {
+          inline_keyboard: [[
+              { text: '❌ Desfazer', callback_data: `undo_${tgMessage.message_id}` }
+          ]]
+      };
+
+      if (processingMsgId) {
+          await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: successMessage, reply_markup: replyMarkup });
+      } else {
+          await sendMessage({ parse_mode: 'HTML', text: successMessage, reply_markup: replyMarkup });
+      }
     } catch (error: any) {
       console.error('Webhook processing error:', error);
+      const errorMessage = 'Erro interno no servidor ao processar sua requisição. Detalhe: ' + error.message;
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ chat_id: tgMessage.chat.id, text: 'Erro interno no servidor ao processar sua requisição. Detalhe: ' + error.message })
+         body: JSON.stringify({ chat_id: update.message?.chat.id || update.edited_message?.chat.id, text: errorMessage })
       }).catch(() => {});
     }
   };
@@ -506,10 +836,7 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
              for (const update of data.result) {
                 lastUpdateId = update.update_id;
                 try { fs.writeFileSync('.telegram_offset', String(lastUpdateId)); } catch(e) {}
-                const tgMessage = update.message || update.edited_message;
-                if (tgMessage) {
-                   await processTelegramPayload(tgMessage, token);
-                }
+                await processTelegramPayload(update, token);
              }
           }
        } catch(err) {

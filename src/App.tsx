@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { auth, googleProvider, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Transaction } from './types';
-import { collection, query, where, onSnapshot, doc, setDoc, orderBy, deleteDoc } from 'firebase/firestore';
-import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff } from 'lucide-react';
+import { collection, query, where, onSnapshot, doc, setDoc, orderBy, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
+import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TransactionModal } from './components/TransactionModal';
 import { AnalysisTab } from './components/AnalysisTab';
@@ -11,6 +11,7 @@ import { TransactionsTab } from './components/TransactionsTab';
 import { ReservesTab } from './components/ReservesTab';
 import { IntegrationTab } from './components/IntegrationTab';
 import { QuickAddTransaction } from './components/QuickAddTransaction';
+import { MonthlyPlanning } from './components/MonthlyPlanning';
 import { MonthYearPicker } from './components/MonthYearPicker';
 import type { MonthlyBudget, UserSettings } from './types';
 
@@ -145,12 +146,96 @@ function Dashboard({ user }: { user: User }) {
            localStorage.getItem('theme') === 'dark';
   });
   const [syncState, setSyncState] = useState({ transactions: false, budgets: false, settings: false, inbox: false });
-  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => {
-    return parseInt(localStorage.getItem('rightSidebarWidth') || '380', 10);
-  });
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(380);
+
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteSubsequent, setDeleteSubsequent] = useState(true);
+
+  const isInstallment = (t: Transaction) => {
+    if (t.groupId) return true;
+    if (t.installments && t.installments > 1) return true;
+    const match = t.description.match(/^(.*?) ?\((\d+)\/(\d+)\) ?(.*)$/);
+    if (match) return true;
+    return false;
+  };
+
+  const getSubsequentInstallments = (t: Transaction) => {
+    if (t.groupId) {
+      if (t.installmentNumber) {
+        return transactions.filter(x => x.groupId === t.groupId && x.id !== t.id && (x.installmentNumber || 0) > t.installmentNumber!);
+      } else {
+        return transactions.filter(x => x.groupId === t.groupId && x.id !== t.id && x.date >= t.date);
+      }
+    }
+    
+    const match = t.description.match(/^(.*?) ?\((\d+)\/(\d+)\) ?(.*)$/);
+    if (match) {
+      const base1 = match[1];
+      const currInst = parseInt(match[2], 10);
+      const totalInst = match[3];
+      const base2 = match[4];
+      
+      return transactions.filter(x => {
+        if (x.id === t.id) return false;
+        if (x.type !== t.type) return false;
+        
+        const m = x.description.match(/^(.*?) ?\((\d+)\/(\d+)\) ?(.*)$/);
+        if (m && m[1] === base1 && m[3] === totalInst && m[4] === base2) {
+          const inst = parseInt(m[2], 10);
+          return inst > currInst;
+        }
+        return false;
+      });
+    }
+    
+    return [];
+  };
+
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+    setIsDeleting(true);
+    try {
+      const batch = writeBatch(db);
+      
+      if (transactionToDelete.reserveModifications && transactionToDelete.reserveModificationsMonth) {
+        const budgetRef = doc(db, 'monthly_budgets', `${user!.uid}_${transactionToDelete.reserveModificationsMonth}`);
+        const bSnap = await getDoc(budgetRef);
+        if (bSnap.exists()) {
+           const b = bSnap.data();
+           const mods = transactionToDelete.reserveModifications;
+           const undoData: any = { updatedAt: Date.now() };
+           
+           if (mods.walletWithdrawals) undoData.walletWithdrawals = (b.walletWithdrawals || 0) - mods.walletWithdrawals;
+           if (mods.emergencyWithdrawals) undoData.emergencyWithdrawals = (b.emergencyWithdrawals || 0) - mods.emergencyWithdrawals;
+           if (mods.reserve) undoData.reserve = (b.reserve || 0) + mods.reserve;
+           if (mods.walletAdd) undoData.wallet = (b.wallet || 0) - mods.walletAdd;
+           
+           batch.update(budgetRef, undoData);
+        }
+      }
+
+      if (isInstallment(transactionToDelete) && deleteSubsequent) {
+        const subsequent = getSubsequentInstallments(transactionToDelete);
+        batch.delete(doc(db, 'transactions', transactionToDelete.id!));
+        subsequent.forEach(sub => {
+          batch.delete(doc(db, 'transactions', sub.id!));
+        });
+      } else {
+        batch.delete(doc(db, 'transactions', transactionToDelete.id!));
+      }
+      
+      await batch.commit();
+      setTransactionToDelete(null);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'transactions');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
+    // legacy storage removed
   }, [rightSidebarWidth]);
 
 
@@ -250,7 +335,7 @@ function Dashboard({ user }: { user: User }) {
     return acc;
   }, {} as Record<string, number>);
   const topCategories = Object.entries(categoriesMap).sort((a, b) => (b[1] as number) - (a[1] as number));
-  const recentTransactions = [...currentMonthTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 7);
+  const recentTransactions = [...currentMonthTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
@@ -322,7 +407,7 @@ function Dashboard({ user }: { user: User }) {
       </nav>
 
       <main className="flex-1 flex flex-col gap-6 p-4 md:p-8 lg:p-10 overflow-y-auto w-full">
-        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 shrink-0 relative z-10 w-full mb-2">
+        <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 shrink-0 relative z-40 w-full mb-2">
            <div className="flex justify-between items-center w-full md:w-auto">
              <h1 className="text-xl md:text-2xl tracking-tight text-gray-900 dark:text-white font-bold flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse hidden md:block"></span>
@@ -407,6 +492,9 @@ function Dashboard({ user }: { user: User }) {
 
                    {/* Quick Add For Dashboard */}
                    <QuickAddTransaction userId={user.uid} userSettings={userSettings} />
+
+                   {/* Planejamento Mensal */}
+                   <MonthlyPlanning userId={user.uid} year={currentYear} month={currentMonth} budget={budget} />
 
                    <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4 lg:gap-6">
                       {/* Análise Mês */}
@@ -551,9 +639,9 @@ function Dashboard({ user }: { user: User }) {
                      {recentTransactions.length > 0 ? (
                         <div className="flex flex-col">
                            {recentTransactions.map(tx => (
-                              <div key={tx.id} onClick={() => { setTxToEdit(tx); setIsModalOpen(true); }} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-gray-100 dark:hover:border-white/5">
+                              <div key={tx.id} onClick={(e) => { e.stopPropagation(); setTxToEdit(tx); setIsModalOpen(true); }} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-gray-100 dark:hover:border-white/5">
                                  <div className="flex flex-col min-w-0 pr-2">
-                                    <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{tx.description}</span>
+                                    <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{tx.description} {tx.installments ? <span className="opacity-50 text-[10px] bg-gray-200 dark:bg-white/10 px-1 rounded ml-2 font-semibold uppercase tracking-widest">{tx.installmentNumber}/{tx.installments}</span> : ''}</span>
                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                        <span className="text-[10px] text-gray-500 shrink-0">
                                           {new Date(tx.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
@@ -588,9 +676,14 @@ function Dashboard({ user }: { user: User }) {
                                        )}
                                     </div>
                                  </div>
-                                 <span className={`text-sm font-mono tracking-tight font-medium shrink-0 ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                                 </span>
+                                 <div className="flex items-center gap-3">
+                                   <span className={`text-sm font-mono tracking-tight font-medium shrink-0 ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                   </span>
+                                   <button onClick={(e) => { e.stopPropagation(); setTransactionToDelete(tx); }} className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" title="Excluir">
+                                     <Trash2 className="w-4 h-4" />
+                                   </button>
+                                 </div>
                               </div>
                            ))}
                         </div>
@@ -631,6 +724,48 @@ function Dashboard({ user }: { user: User }) {
       </main>
 
       <TransactionModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setTxToEdit(null); }} userId={user.uid} userSettings={userSettings} initialData={txToEdit} initialType={txInitialType} />
+
+      {transactionToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Excluir Transação</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Tem certeza de que deseja excluir <strong>{transactionToDelete.description}</strong>?
+            </p>
+            
+            {isInstallment(transactionToDelete) && (
+              <label className="flex items-start gap-3 mb-6 p-3 bg-gray-50 dark:bg-[#0A0A0B] rounded-xl border border-gray-200 dark:border-white/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 transition">
+                <input 
+                  type="checkbox" 
+                  checked={deleteSubsequent}
+                  onChange={e => setDeleteSubsequent(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Excluir também as <strong>{getSubsequentInstallments(transactionToDelete).length}</strong> parcelas futuras relacionadas a esta transação.
+                </span>
+              </label>
+            )}
+
+            <div className="flex gap-3 justify-end mt-2">
+              <button 
+                onClick={() => setTransactionToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeleting ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
