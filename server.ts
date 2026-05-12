@@ -3,7 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, where, setDoc, limit, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, where, setDoc, limit, updateDoc, deleteDoc } from 'firebase/firestore';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 
@@ -137,7 +137,7 @@ async function startServer() {
       if (text) {
          const lowerText = text.trim().toLowerCase();
          if (lowerText === '/start' || lowerText === '/help' || lowerText === '/ajuda') {
-             await sendMessage({ text: '👋 Olá! Bem-vindo ao seu Assistente Financeiro.\n\nVocê pode me mandar mensagens de texto ou áudio relatando seus ganhos e gastos, por exemplo:\n🗣️ "Comprei um almoço por 35 reais no crédito"\n🗣️ "Recebi 1500 do freela de design pelo pix"\n\nOutros comandos:\n/saldo - Ver seu resumo financeiro atual' });
+             await sendMessage({ text: '👋 Olá! Bem-vindo ao seu Assistente Financeiro.\n\nVocê pode me mandar mensagens de texto ou áudio relatando seus ganhos e gastos, por exemplo:\n🗣️ "Comprei um almoço por 35 reais no crédito"\n🗣️ "Recebi 1500 do freela de design pelo pix"\n\nOutros comandos:\n/saldo - Ver seu resumo financeiro atual\n/extrato - Ver todos os lançamentos do mês\n/status - Checar se o bot está ativo' });
              return;
          }
          if (lowerText === '/ping' || lowerText === '/status' || lowerText === 'está ativo?' || lowerText === 'esta ativo?' || lowerText === 'voce esta ativo?') {
@@ -248,7 +248,7 @@ async function startServer() {
       netAccWallet = accWallet - accWalletWithdrawals;
       totalAcc = accReserve + accReserveOfReserve + accWallet - accWalletWithdrawals - accEmergencyWithdrawals;
       
-      const docs = allSnaps.docs.map(d => d.data()).concat(inboxSnaps.docs.map(d => d.data()));
+      const docs = allSnaps.docs.map(d => ({id: d.id, ...d.data()})).concat(inboxSnaps.docs.map(d => ({id: d.id, ...d.data()})));
       docs.sort((a, b) => (b.date || 0) - (a.date || 0));
 
       docs.forEach(data => {
@@ -278,6 +278,7 @@ async function startServer() {
       
       docs.slice(0, 15).forEach(data => {
          recentTransactions.push({
+            id: data.id,
             desc: data.description, 
             cat: data.category, 
             acc: data.account, 
@@ -314,6 +315,42 @@ async function startServer() {
               }
               return;
           }
+          if (lowerText === '/extrato' || lowerText === '/lancamentos') {
+              const bFormat = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+              
+              const currentMonthTx = docs.filter(d => {
+                  const dDate = new Date(d.date);
+                  return dDate.getMonth() === currentMonth && dDate.getFullYear() === currentYear;
+              });
+
+              let extratoMsg = `📋 <b>Lançamentos do Mês (${currentMonth + 1}/${currentYear})</b>\n`;
+              extratoMsg += `Total: ${currentMonthTx.length} transações\n\n`;
+
+              if (currentMonthTx.length === 0) {
+                  extratoMsg += `<i>Nenhum lançamento registrado neste mês.</i>`;
+              } else {
+                  currentMonthTx.forEach(tx => {
+                      const dStr = new Date(tx.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                      const icon = tx.type === 'income' ? '🟢' : '🔴';
+                      extratoMsg += `${icon} <b>${dStr}</b>: ${tx.description}\n`;
+                      extratoMsg += `   💸 ${bFormat(Number(tx.amount))}\n`;
+                      extratoMsg += `   🏷️ <i>${tx.category} • ${tx.paymentMethod || 'Espécie'} ${tx.account ? `• ${tx.account}` : ''}</i>\n`;
+                      extratoMsg += `   🔖 ID: <code>${tx.id}</code>\n\n`;
+                  });
+              }
+              
+              // If message is too long, Telegram rejects it (4096 is the limit).
+              if (extratoMsg.length > 4000) {
+                  extratoMsg = extratoMsg.substring(0, 3900) + '\n\n... (limite de mensagem atingido. Acesse o aplicativo para ver todos).';
+              }
+
+              if (processingMsgId) {
+                  await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: extratoMsg });
+              } else {
+                  await sendMessage({ parse_mode: 'HTML', text: extratoMsg });
+              }
+              return;
+          }
       }
 
       let promptContents: any[] = [];
@@ -322,18 +359,29 @@ Você é um assistente financeiro inteligente e analítico, especializado em cla
 
 ${text ? `CONTEÚDO RECEBIDO (TEXTO): "${text}"\n` : "CONTEÚDO RECEBIDO: [Áudio anexado, extraia a fala com precisão]"}
 
-O usuário pode estar REGISTRANDO UMA TRANSAÇÃO ou FAZENDO UMA PERGUNTA sobre suas finanças.
+O usuário pode estar REGISTRANDO UMA TRANSAÇÃO, FAZENDO UMA PERGUNTA ou APAGANDO UMA TRANSAÇÃO sobre suas finanças.
 
 == REGRAS PARA PERGUNTAS (PRIORIDADE ALTA) ==
 Se o usuário estiver perguntando algo com intenção de saber dados (ex: "Qual meu saldo?", "Quanto gastei esse mês?", "Quais foram meus gastos?", "resumo"), você DEVE gerar um JSON de pergunta. NUNCA invente ou registre uma transação nestes casos.
 O JSON deve ter esta estrutura:
 {
-  "isQuestion": true,
-  "answer": "Sua resposta (em markdown) baseada EXCLUSIVAMENTE no RESUMO FINANCEIRO abaixo. Se uma informação (como limite ou total em crédito) não estiver no resumo, informe que a informação não está disponível."
+  "intent": "QUESTION",
+  "answer": "Sua resposta (em markdown) baseada EXCLUSIVAMENTE no RESUMO FINANCEIRO abaixo. Se uma informação não estiver no resumo, informe. Se o usuário quiser ver TODAS as transações do mês, oriente-o a usar o comando /extrato."
+}
+
+== REGRAS PARA APAGAR TRANSAÇÕES ==
+Se o usuário pedir para apagar, excluir ou desfazer (ex: "apaga a compra do mercado de 20 reais", "desfaz o lançamento da conta de luz"):
+1. Identifique a transação no Histórico Recente.
+2. Gere um JSON com a seguinte estrutura:
+{
+  "intent": "DELETE",
+  "targetId": "O id EXATO da transação a ser apagada",
+  "description": "Uma breve descrição da transação apagada para informar ao usuário"
 }
 
 == REGRAS PARA REGISTRO DE TRANSAÇÃO ==
-Se, e SOMENTE SE, a intenção do usuário for claramente registrar um gasto ou ganho, e um valor monetário estiver presente ou claramente implícito, extraia as seguintes propriedades para o JSON, omitindo o "isQuestion":
+Se, e SOMENTE SE, a intenção do usuário for claramente registrar um gasto ou ganho, e um valor monetário estiver presente ou claramente implícito, extraia as seguintes propriedades para o JSON:
+- "intent": "CREATE"
 - "description" (string): Nome do serviço/estabelecimento.
 - "amount" (number): Valor em formato de número. Se o usuário não informar o valor, RETORNE UM JSON DE PERGUNTA informando que o valor está faltando. NUNCA invente valores.
 - "type" (string): "expense" ou "income".
@@ -349,7 +397,7 @@ Se, e SOMENTE SE, a intenção do usuário for claramente registrar um gasto ou 
 Se houver "modifyWalletAction" ("add" ou "subtract"):
 A sua resposta DEVE verificar se a "account" ou o nome do banco/conta foi explicitamente especificado.
 Se o banco/conta NÃO FOI MENCIONADO (por exemplo, "guardei 100 na reserva" ou "tirei 50 da carteira"), RETORNE UM JSON DE PERGUNTA informando a falta do banco:
-{"isQuestion": true, "answer": "De qual banco/conta é esse valor? Por favor, envie novamente informando o banco (ex: 'Guardei 100 na reserva do Nubank' ou 'Tirei 50 da carteira do Itaú')."}
+{"intent": "QUESTION", "answer": "De qual banco/conta é esse valor? Por favor, envie novamente informando o banco."}
 NÃO retorne as propriedades de transação, retorne APENAS a pergunta!
 
 == CONTEXTO DO USUÁRIO ==
@@ -371,7 +419,7 @@ ${Object.entries(accountBalances).map(([acc, bal]) => `- ${acc}: R$ ${bal.toFixe
 🔹 Gastos do Mês por Categoria:
 ${Object.entries(currentMonthExpensesByCategory).map(([cat, amount]) => `- ${cat}: R$ ${amount.toFixed(2)}`).join('\n') || "Sem gastos neste mês."}
 🔹 Histórico Recente de Transações:
-${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: ${t.type} | Cat: ${t.cat} | Data: ${new Date(t.date).toLocaleDateString('pt-BR')}`).join('\n') || "Nenhuma recente."}
+${recentTransactions.slice(0, 10).map(t => `[ID: ${t.id}] - ${t.desc} | R$ ${t.amount} | Tipo: ${t.type} | Cat: ${t.cat} | Data: ${new Date(t.date).toLocaleDateString('pt-BR')}`).join('\n') || "Nenhuma recente."}
 
 == REGRAS CRÍTICAS ==
 1. Se a entrada principal for um áudio longo ou falado informalmente ("pô, acabei de gastar 20 conto na padoca"), traduza o sentido corretamente (20 reais, Padaria, Alimentação).
@@ -528,7 +576,7 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
          return;
       }
 
-      if (data.isQuestion) {
+      if (data.isQuestion || data.intent === 'QUESTION') {
          let ans = data.answer || "Não consegui formular uma resposta.";
          ans = ans.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
          ans = ans.replace(/\*(.*?)\*/g, '<i>$1</i>');
@@ -536,6 +584,31 @@ ${recentTransactions.slice(0, 5).map(t => `- ${t.desc} | R$ ${t.amount} | Tipo: 
             await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: ans });
          } else {
             await sendMessage({ parse_mode: 'HTML', text: ans });
+         }
+         return;
+      }
+
+      if (data.intent === 'DELETE') {
+         if (!data.targetId) {
+            const msg = `Nenhuma transação específica pôde ser apagada. Peça o histórico para ver os IDs e tente novamente.`;
+            if (processingMsgId) await editMessage({ message_id: processingMsgId, text: msg });
+            else await sendMessage({ text: msg });
+            return;
+         }
+         
+         try {
+            await deleteDoc(doc(db, 'transactions', data.targetId));
+            const msg = `✅ Transação <b>${data.description || 'selecionada'}</b> foi excluída do sistema com sucesso.`;
+            if (processingMsgId) {
+                await editMessage({ message_id: processingMsgId, parse_mode: 'HTML', text: msg });
+            } else {
+                await sendMessage({ parse_mode: 'HTML', text: msg });
+            }
+         } catch (e: any) {
+            console.error('Delete error', e);
+            const msg = 'Erro ao apagar a transação.';
+            if (processingMsgId) await editMessage({ message_id: processingMsgId, text: msg });
+            else await sendMessage({ text: msg });
          }
          return;
       }
