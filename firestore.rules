@@ -9,6 +9,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isSignedIn() && userId is string && userId == request.auth.uid;
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -23,7 +27,7 @@ service cloud.firestore {
 
     function isValidTransaction(data) {
       return data.keys().hasAll(['userId', 'description', 'date', 'amount', 'type', 'category', 'createdAt'])
-        && data.userId is string && (request.auth == null || data.userId == request.auth.uid)
+        && isOwner(data.userId)
         && data.description is string && data.description.size() <= 200
         && data.date is number
         && data.amount is number
@@ -45,41 +49,41 @@ service cloud.firestore {
       allow create, update: if isSignedIn()
         && docId == request.auth.uid
         && incoming().userId == request.auth.uid;
-      allow get: if true; // Allow server to fetch by UUID capability
+      allow get: if isSignedIn() && docId == request.auth.uid;
     }
 
     match /telegram_users/{docId} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
 
     match /inbox/{docId} {
-      allow create: if true;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get, list: if true;
+      allow create: if isSignedIn() && isOwner(incoming().userId);
+      allow update: if isOwner(existing().userId) && isOwner(incoming().userId);
+      allow delete: if isOwner(existing().userId);
+      allow get, list: if isOwner(existing().userId);
     }
     
     match /transactions/{transactionId} {
-      allow create: if true
+      allow create: if isSignedIn()
         && isValidId(transactionId)
         && isValidTransaction(incoming());
       
-      allow update: if true
+      allow update: if isSignedIn()
         && isValidId(transactionId)
-        && (request.auth == null || existing().userId == request.auth.uid)
+        && isOwner(existing().userId)
         && isValidTransaction(incoming())
         && incoming().userId == existing().userId;
       
-      allow delete: if true
+      allow delete: if isSignedIn()
         && isValidId(transactionId)
-        && (request.auth == null || existing().userId == request.auth.uid);
+        && isOwner(existing().userId);
       
-      allow get: if true;
-      allow list: if true; // Allow server to fetch recent context
+      allow get, list: if isOwner(existing().userId);
     }
 
     function isValidBudget(data) {
       return data.keys().hasAll(['userId', 'year', 'month'])
-        && data.userId is string && (request.auth == null || data.userId == request.auth.uid)
+        && isOwner(data.userId)
         && data.year is number
         && data.month is number
         && (data.get('salary', 0) is number)
@@ -99,23 +103,21 @@ service cloud.firestore {
     }
 
     match /monthly_budgets/{budgetId} {
-      allow create: if true
+      allow create: if isSignedIn()
         && isValidId(budgetId)
         && isValidBudget(incoming());
       
-      allow update: if true
+      allow update: if isSignedIn()
         && isValidId(budgetId)
-        && (request.auth == null || existing().userId == request.auth.uid)
+        && isOwner(existing().userId)
         && isValidBudget(incoming())
         && incoming().userId == existing().userId;
       
       allow delete: if isSignedIn()
         && isValidId(budgetId)
         && existing().userId == request.auth.uid;
-        
-      allow get: if true;
-        
-      allow list: if true;
+         
+      allow get, list: if isOwner(existing().userId);
     }
   }
 }
