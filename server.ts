@@ -366,7 +366,7 @@ Se o usuário estiver perguntando algo com intenção de saber dados (ex: "Qual 
 O JSON deve ter esta estrutura:
 {
   "intent": "QUESTION",
-  "answer": "Sua resposta (em markdown) baseada EXCLUSIVAMENTE no RESUMO FINANCEIRO abaixo. Se uma informação não estiver no resumo, informe. Se o usuário quiser ver TODAS as transações do mês, oriente-o a usar o comando /extrato."
+  "answer": "Sua resposta (em markdown) baseada EXCLUSIVAMENTE no RESUMO FINANCEIRO abaixo. Se uma informação não estiver no resumo, informe. Se o usuário quiser ver TODAS as transações do mês, oriente-o a usar o comando /extrato. Se o usuário perguntar o que o bot sabe fazer, fale sobre as funcionalidades e sugira o comando /help."
 }
 
 == REGRAS PARA APAGAR TRANSAÇÕES ==

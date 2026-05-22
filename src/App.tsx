@@ -3,7 +3,7 @@ import { auth, googleProvider, db, handleFirestoreError, OperationType } from '.
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Transaction } from './types';
 import { collection, query, where, onSnapshot, doc, setDoc, orderBy, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
-import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2 } from 'lucide-react';
+import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2, Copy } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TransactionModal } from './components/TransactionModal';
 import { AnalysisTab } from './components/AnalysisTab';
@@ -490,9 +490,6 @@ function Dashboard({ user }: { user: User }) {
                       </div>
                    </div>
 
-                   {/* Quick Add For Dashboard */}
-                   <QuickAddTransaction userId={user.uid} userSettings={userSettings} />
-
                    {/* Planejamento Mensal */}
                    <MonthlyPlanning userId={user.uid} year={currentYear} month={currentMonth} budget={budget} />
 
@@ -676,11 +673,30 @@ function Dashboard({ user }: { user: User }) {
                                        )}
                                     </div>
                                  </div>
-                                 <div className="flex items-center gap-3">
-                                   <span className={`text-sm font-mono tracking-tight font-medium shrink-0 ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                                 <div className="flex items-center gap-1 sm:gap-3">
+                                   <span className={`text-sm font-mono tracking-tight font-medium shrink-0 mr-1 sm:mr-0 ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
                                       {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                                    </span>
-                                   <button onClick={(e) => { e.stopPropagation(); setTransactionToDelete(tx); }} className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" title="Excluir">
+                                   <button 
+                                      onClick={(e) => { 
+                                         e.stopPropagation(); 
+                                         const { id, ...copyTx } = tx; 
+                                         setTxToEdit(copyTx as Transaction); 
+                                         setIsModalOpen(true); 
+                                      }} 
+                                      className="text-gray-400 hover:text-emerald-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" 
+                                      title="Duplicar"
+                                   >
+                                     <Copy className="w-4 h-4" />
+                                   </button>
+                                   <button 
+                                      onClick={(e) => { 
+                                         e.stopPropagation(); 
+                                         setTransactionToDelete(tx); 
+                                      }} 
+                                      className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" 
+                                      title="Excluir"
+                                   >
                                      <Trash2 className="w-4 h-4" />
                                    </button>
                                  </div>

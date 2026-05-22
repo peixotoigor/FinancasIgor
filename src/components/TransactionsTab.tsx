@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, deleteDoc, collection, addDoc, writeBatch } from 'firebase/firestore';
-import { Trash2, Pencil, Plus, Check, X, Search, Filter, RefreshCw } from 'lucide-react';
+import { Trash2, Pencil, Plus, Check, X, Search, Filter, RefreshCw, Copy } from 'lucide-react';
 import { QuickAddTransaction } from './QuickAddTransaction';
 
 export function TransactionsTab({ userId, transactions, onEdit, userSettings }: { userId?: string, transactions: Transaction[], onEdit?: (t: Transaction) => void, userSettings?: import('../types').UserSettings }) {
@@ -14,39 +14,6 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
   const [filterEndDate, setFilterEndDate] = useState('');
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-
-  const resetAddForm = () => {
-    setAddDesc('');
-    setAddAmount('');
-    setAddDate(new Date().toISOString().split('T')[0]);
-    // Keeps type, cat, method stable for rapid entry
-  };
-
-  const handleQuickAdd = async () => {
-    if (!userId || !addDesc || !addAmount || !addCat) return;
-    const parsedAmount = parseFloat(addAmount.replace(',', '.'));
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
-
-    try {
-      const baseDate = new Date(addDate + 'T12:00:00');
-      const payload: Transaction = {
-          userId,
-          description: addDesc,
-          amount: parsedAmount,
-          date: baseDate.getTime(),
-          type: addType,
-          category: addCat,
-          account: addType === 'expense' ? 'Conta' : '',
-          paymentMethod: addType === 'expense' ? (addMethod || 'Débito') : '',
-          card: addType === 'expense' && (addMethod === 'Crédito' || addMethod === 'Débito') ? addCard : undefined,
-          createdAt: Date.now()
-      };
-      await addDoc(collection(db, 'transactions'), payload);
-      resetAddForm();
-    } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, 'transactions');
-    }
-  };
 
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -273,7 +240,7 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
           </div>
        </div>
        {userId && (
-          <div className="p-4 px-4 sm:px-6 pb-0 pt-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
+          <div className="p-4 px-4 sm:px-6 pb-0 pt-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01] @container">
             <QuickAddTransaction userId={userId} userSettings={userSettings} />
           </div>
        )}
@@ -355,11 +322,31 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
                          )}
                       </div>
                    </div>
-                   <div className="flex items-center gap-3">
-                     <span className={`text-sm font-mono tracking-tight font-medium shrink-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                   <div className="flex items-center gap-1 sm:gap-3">
+                     <span className={`text-sm font-mono tracking-tight font-medium shrink-0 mr-1 sm:mr-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
                         {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                      </span>
-                     <button onClick={(e) => { e.stopPropagation(); setTransactionToDelete(t); }} className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" title="Excluir">
+                     <button 
+                        onClick={(e) => { 
+                           e.stopPropagation(); 
+                           if (onEdit) {
+                              const { id, ...copyTx } = t; 
+                              onEdit(copyTx as Transaction);
+                           } 
+                        }} 
+                        className="text-gray-400 hover:text-emerald-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" 
+                        title="Duplicar"
+                     >
+                       <Copy className="w-4 h-4" />
+                     </button>
+                     <button 
+                        onClick={(e) => { 
+                           e.stopPropagation(); 
+                           setTransactionToDelete(t); 
+                        }} 
+                        className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" 
+                        title="Excluir"
+                     >
                        <Trash2 className="w-4 h-4" />
                      </button>
                    </div>
