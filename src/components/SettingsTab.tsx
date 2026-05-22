@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserSettings } from '../types';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { doc, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
-import { Trash2, Plus, Wrench, Save, ArrowDownRight, ArrowUpRight, CreditCard, Database, ShieldAlert, Check } from 'lucide-react';
+import { Trash2, Plus, Wrench, ArrowDownRight, ArrowUpRight, CreditCard, Database, ShieldAlert, Check, Loader2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 
 interface Props {
   user: User;
@@ -15,6 +15,119 @@ const PRESET_COLORS = [
   '#99f6e4', '#bae6fd', '#bfdbfe', '#c7d2fe', '#ddd6fe', '#fbcfe8', '#fecdd3',
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#3b82f6', '#a855f7', '#ec4899', '#737373', '#9ca3af'
 ];
+
+const ColorPicker = ({ value, onChange }: { value: string, onChange: (val: string) => void }) => {
+  return (
+    <div className="relative group shrink-0">
+      <label className="cursor-pointer w-6 h-6 rounded-full border border-gray-300 dark:border-white/20 shadow-sm block overflow-hidden transition-transform group-hover:scale-110" style={{ backgroundColor: value }}>
+        <input type="color" value={value} onChange={e => onChange(e.target.value)} className="opacity-0 w-full h-full cursor-pointer" />
+      </label>
+    </div>
+  );
+};
+
+const SortableConfigList = ({
+  title, 
+  icon,
+  items, 
+  setItems
+}: {
+  title: string, 
+  icon: React.ReactNode,
+  items: {name: string, color: string}[], 
+  setItems: React.Dispatch<React.SetStateAction<{name: string, color: string}[]>>
+}) => {
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  // Focus ref so we can keep focus if needed, but standard uncontrolled/controlled should be fine if not remounting
+  return (
+    <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 p-6 rounded-2xl relative overflow-hidden flex flex-col h-full shadow-sm hover:border-gray-300 dark:hover:border-white/10 transition-colors">
+       <div className="flex justify-between items-start mb-6">
+         <div className="flex items-center gap-3">
+           <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-gray-900 dark:text-gray-100">
+             {icon}
+           </div>
+           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">{title}</h3>
+         </div>
+       </div>
+
+       <div className="flex-1 flex flex-col gap-3">
+          {items.map((item, idx) => (
+            <div 
+              key={idx} 
+              draggable="true"
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                setDraggedIdx(idx);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (draggedIdx === null || draggedIdx === idx) return;
+                setDragOverIdx(idx);
+              }}
+              onDragLeave={() => {
+                if (dragOverIdx === idx) setDragOverIdx(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (draggedIdx === null || draggedIdx === idx) return;
+                const newItems = [...items];
+                const temp = newItems[draggedIdx];
+                newItems.splice(draggedIdx, 1);
+                newItems.splice(idx, 0, temp);
+                setItems(newItems);
+                setDraggedIdx(null);
+                setDragOverIdx(null);
+              }}
+              onDragEnd={() => {
+                setDraggedIdx(null);
+                setDragOverIdx(null);
+              }}
+              className={`flex items-center gap-3 bg-white dark:bg-[#18181b] border rounded-xl p-1.5 group transition-all shadow-sm
+                ${draggedIdx === idx ? 'opacity-40 border-emerald-500/50 scale-95 shadow-none' : ''}
+                ${dragOverIdx === idx ? 'border-emerald-500 scale-[1.02] bg-emerald-50 dark:bg-emerald-500/10 shadow-md' : 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-md'}`}
+            >
+               <div className="flex flex-col opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing px-1 text-gray-400 hover:text-gray-900 dark:hover:text-white touch-none">
+                  <GripVertical className="w-4 h-4" />
+               </div>
+               <div className="shrink-0">
+                  <ColorPicker value={item.color} onChange={val => {
+                     const newItems = [...items];
+                     newItems[idx].color = val;
+                     setItems(newItems);
+                  }} />
+               </div>
+               <input 
+                  value={item.name} 
+                  onChange={e => {
+                     const newItems = [...items];
+                     newItems[idx].name = e.target.value;
+                     setItems(newItems);
+                  }}
+                  placeholder="Nome do item..."
+                  className="flex-1 bg-transparent border-none py-2 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-0 placeholder-gray-400 dark:placeholder-gray-600 w-full min-w-0"
+               />
+               <button 
+                 onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                 className="text-gray-400 hover:text-red-500 p-2.5 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 focus:opacity-100 focus:outline-none shrink-0"
+                 title="Remover"
+               >
+                 <Trash2 className="w-4 h-4" />
+               </button>
+            </div>
+          ))}
+          <button 
+             onClick={() => setItems([...items, { name: '', color: PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)] }])}
+             className="mt-2 flex items-center justify-center gap-2 h-11 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 hover:border-emerald-200 dark:hover:border-emerald-500/20 transition-all font-medium text-sm"
+          >
+             <Plus className="w-4 h-4" />
+             Adicionar Item
+          </button>
+       </div>
+     </div>
+  );
+};
 
 export function SettingsTab({ user, userSettings }: Props) {
   const [categories, setCategories] = useState<{name: string, color: string}[]>(() => {
@@ -38,14 +151,53 @@ export function SettingsTab({ user, userSettings }: Props) {
     }));
   });
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const initialRender = useRef(true);
+
   const [isFixing, setIsFixing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteStatusMsg, setDeleteStatusMsg] = useState("");
   const [fixStatusMsg, setFixStatusMsg] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmFix, setConfirmFix] = useState(false);
+
+  // Auto-save logic
+  useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSaveStatus('saving');
+      const catNames = categories.map(c => c.name).filter(Boolean);
+      const inCatNames = incomeCategories.map(c => c.name).filter(Boolean);
+      const cardNames = cards.map(c => c.name).filter(Boolean);
+      
+      const catColors = [...categories, ...incomeCategories].reduce((acc, c) => ({ ...acc, [c.name]: c.color }), {});
+      const crdColors = cards.reduce((acc, c) => ({ ...acc, [c.name]: c.color }), {});
+
+      try {
+        await setDoc(doc(db, 'user_settings', user.uid), {
+          categories: catNames,
+          incomeCategories: inCatNames,
+          cards: cardNames,
+          categoryColors: catColors,
+          cardColors: crdColors,
+        }, { merge: true });
+        
+        setSaveStatus('saved');
+        setTimeout(() => {
+          setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+        }, 3000);
+      } catch (e) {
+        console.error("Save error:", e);
+        setSaveStatus('error');
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [categories, incomeCategories, cards, user.uid]);
 
   const handleDeleteOldTransactions = async () => {
     setIsDeleting(true);
@@ -345,164 +497,68 @@ export function SettingsTab({ user, userSettings }: Props) {
     }
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setShowSaveSuccess(false);
-    const catNames = categories.map(c => c.name).filter(Boolean);
-    const inCatNames = incomeCategories.map(c => c.name).filter(Boolean);
-    const cardNames = cards.map(c => c.name).filter(Boolean);
-    
-    // Merge colors for both expense and income categories
-    const catColors = [...categories, ...incomeCategories].reduce((acc, c) => ({ ...acc, [c.name]: c.color }), {});
-    const crdColors = cards.reduce((acc, c) => ({ ...acc, [c.name]: c.color }), {});
-
-    try {
-      await setDoc(doc(db, 'user_settings', user.uid), {
-        categories: catNames,
-        incomeCategories: inCatNames,
-        cards: cardNames,
-        categoryColors: catColors,
-        cardColors: crdColors,
-      }, { merge: true });
-      setShowSaveSuccess(true);
-      setTimeout(() => setShowSaveSuccess(false), 3000);
-    } catch (e) {
-      console.error(e instanceof Error ? e.message : String(e));
-      alert('Erro ao salvar. Verifique sua conexão.');
-    }
-    setIsSaving(false);
-  };
-
-  const ColorPicker = ({ value, onChange }: { value: string, onChange: (val: string) => void }) => {
-    return (
-      <div className="relative group shrink-0">
-        <label className="cursor-pointer w-6 h-6 rounded-full border border-gray-300 dark:border-white/20 shadow-sm block overflow-hidden transition-transform group-hover:scale-110" style={{ backgroundColor: value }}>
-          <input type="color" value={value} onChange={e => onChange(e.target.value)} className="opacity-0 w-full h-full cursor-pointer" />
-        </label>
-      </div>
-    );
-  };
-
-  const renderList = (
-    title: string, 
-    icon: React.ReactNode,
-    items: {name: string, color: string}[], 
-    setItems: React.Dispatch<React.SetStateAction<{name: string, color: string}[]>>
-  ) => {
-    return (
-      <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 p-6 rounded-2xl relative overflow-hidden flex flex-col h-full shadow-sm hover:border-gray-300 dark:hover:border-white/10 transition-colors">
-         <div className="flex justify-between items-start mb-6">
-           <div className="flex items-center gap-3">
-             <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 text-gray-900 dark:text-gray-100">
-               {icon}
-             </div>
-             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">{title}</h3>
-           </div>
-         </div>
-
-         <div className="flex-1 flex flex-col gap-3">
-            {items.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-3 bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/5 rounded-xl p-2 group transition-all hover:bg-white dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-white/10 shadow-sm">
-                 <div className="pl-2">
-                    <ColorPicker value={item.color} onChange={val => {
-                       const newItems = [...items];
-                       newItems[idx].color = val;
-                       setItems(newItems);
-                    }} />
-                 </div>
-                 <input 
-                    value={item.name} 
-                    onChange={e => {
-                       const newItems = [...items];
-                       newItems[idx].name = e.target.value;
-                       setItems(newItems);
-                    }}
-                    placeholder="Nome..."
-                    className="flex-1 bg-transparent border-none p-2 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-0"
-                 />
-                 <button 
-                   onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                   className="text-gray-400 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 focus:opacity-100 focus:outline-none"
-                   title="Remover"
-                 >
-                   <Trash2 className="w-4 h-4" />
-                 </button>
-              </div>
-            ))}
-            <button 
-               onClick={() => setItems([...items, { name: '', color: PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)] }])}
-               className="mt-2 flex items-center justify-center gap-2 h-11 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 hover:border-emerald-200 dark:hover:border-emerald-500/20 transition-all font-medium text-sm"
-            >
-               <Plus className="w-4 h-4" />
-               Adicionar Item
-            </button>
-         </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20 fade-in">
+    <div className="max-w-6xl mx-auto space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#121214] p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">Parametrização</h2>
-          <p className="text-gray-500 text-sm font-medium">Personalize suas categorias, contas e opções globais da conta.</p>
-        </div>
-        <button 
-          disabled={isSaving}
-          onClick={handleSave}
-          className="flex shrink-0 items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition-all hover:shadow-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center group"
-        >
-          {isSaving ? (
-            <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-black border-r-transparent rounded-full animate-spin"></div> Salvando...</span>
-          ) : showSaveSuccess ? (
-            <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Salvo com Sucesso!</span>
-          ) : (
-            <span className="flex items-center gap-2"><Save className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" /> Salvar Alterações</span>
-          )}
-        </button>
-      </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b border-gray-100 dark:border-white/5 mb-6">
+         <div>
+           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Parametrização</h2>
+           <p className="text-gray-500 text-sm font-medium mt-1">Personalize suas categorias, contas e opções globais.</p>
+         </div>
+         
+         <div className="flex items-center gap-2 text-sm font-medium fixed sm:static bottom-20 sm:bottom-0 right-4 sm:right-0 bg-white/90 sm:bg-transparent dark:bg-[#121214]/90 sm:dark:bg-transparent shadow-lg sm:shadow-none p-3 sm:p-0 rounded-full sm:rounded-none z-50 backdrop-blur-md">
+            {saveStatus === "saving" && <span className="text-orange-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span className="hidden sm:inline">Salvando...</span></span>}
+            {saveStatus === "saved" && <span className="text-emerald-500 flex items-center gap-2"><Check className="w-4 h-4" /> <span className="hidden sm:inline">Salvo automaticamente</span></span>}
+            {saveStatus === "error" && <span className="text-red-500 flex items-center gap-2"><Check className="w-4 h-4" /> <span className="hidden sm:inline">Erro ao salvar</span></span>}
+            {saveStatus === "idle" && <span className="text-gray-400 dark:text-gray-500 flex items-center gap-2"><Check className="w-4 h-4 opacity-50" /> <span className="hidden sm:inline">Sincronizado</span></span>}
+         </div>
+       </div>
       
       {/* Configuration Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {renderList("Categorias de Gastos", <ArrowDownRight className="w-5 h-5 text-red-500" />, categories, setCategories)}
-        {renderList("Categorias de Receitas", <ArrowUpRight className="w-5 h-5 text-blue-500" />, incomeCategories, setIncomeCategories)}
-        {renderList("Cartões & Contas", <CreditCard className="w-5 h-5 text-indigo-500" />, cards, setCards)}
+        <SortableConfigList title="Categorias de Gastos" icon={<ArrowDownRight className="w-5 h-5 text-red-500" />} items={categories} setItems={setCategories} />
+        <SortableConfigList title="Categorias de Receitas" icon={<ArrowUpRight className="w-5 h-5 text-emerald-500" />} items={incomeCategories} setItems={setIncomeCategories} />
+        <SortableConfigList title="Cartões & Contas" icon={<CreditCard className="w-5 h-5 text-indigo-500" />} items={cards} setItems={setCards} />
       </div>
 
       {/* Advanced / Maintenance Section */}
-      <div className="mt-12">
-        <div className="flex items-center gap-2 mb-6">
-           <Database className="w-5 h-5 text-gray-400" />
-           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Avançado & Manutenção</h2>
+      <section className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 shadow-sm rounded-2xl p-6 sm:p-8 mt-8">
+        <div className="flex items-center gap-3 mb-6">
+           <div className="w-10 h-10 bg-gray-50 dark:bg-white/5 text-gray-500 rounded-xl flex items-center justify-center border border-gray-200 dark:border-white/10">
+              <Database className="w-5 h-5" />
+           </div>
+           <div>
+             <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Avançado & Manutenção</h2>
+             <p className="text-xs text-gray-500">Ações perigosas e scripts estruturais no banco de dados.</p>
+           </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 p-6 rounded-2xl relative flex flex-col group hover:border-orange-300 dark:hover:border-orange-900/80 transition-colors">
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 p-6 rounded-2xl relative flex flex-col group transition-colors">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400">
                 <Wrench className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-orange-700 dark:text-orange-500">Reparo de Dados</h3>
+              <h3 className="text-sm font-bold tracking-tight text-orange-700 dark:text-orange-500">Reparo de Dados</h3>
             </div>
             
-            <p className="text-orange-800/80 dark:text-orange-200/70 text-sm mb-6 flex-grow leading-relaxed">
-              Utilitário de correção de acentuação e vínculos. Use isso caso note desagregação nos relatórios causada por grafias inconsistentes nas categorias ("Alimentação" vs "alimentacao").
+            <p className="text-orange-800/80 dark:text-orange-200/70 text-sm mb-6 flex-grow leading-relaxed font-medium">
+              Utilitário de correção de acentuação e vínculos. Use isso caso note desagregação nos relatórios causada por grafias inconsistentes nas categorias.
             </p>
             
             {fixStatusMsg && (
-              <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg border border-orange-200/50 dark:border-orange-900/30 mb-4">
+              <div className="p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-orange-200/50 dark:border-orange-900/30 mb-4">
                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300">{fixStatusMsg}</p>
               </div>
             )}
 
             {confirmFix ? (
-                <div className="flex items-center gap-3 mt-auto">
+                <div className="flex flex-col xl:flex-row items-stretch gap-2 mt-auto">
                   <button 
                     disabled={isFixing}
                     onClick={handleFixDatabase}
-                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50"
                   >
                     {isFixing ? <div className="w-4 h-4 border-2 border-white border-r-transparent rounded-full animate-spin"></div> : <Check className="w-4 h-4" />}
                     {isFixing ? 'Aplicando...' : 'Confirmar Reparo'}
@@ -510,7 +566,7 @@ export function SettingsTab({ user, userSettings }: Props) {
                   <button 
                     disabled={isFixing}
                     onClick={() => setConfirmFix(false)}
-                    className="flex-1 bg-white dark:bg-[#121214] border border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-4 py-2.5 rounded-xl font-medium text-sm transition"
+                    className="flex-[0.5] bg-white dark:bg-black/40 border border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-4 py-2.5 rounded-xl font-semibold text-xs transition"
                   >
                     Cancelar
                   </button>
@@ -519,37 +575,37 @@ export function SettingsTab({ user, userSettings }: Props) {
               <button 
                 disabled={isFixing || isDeleting}
                 onClick={() => setConfirmFix(true)}
-                className="w-full bg-white dark:bg-[#121214] border border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-400 px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 mt-auto"
+                className="w-full bg-white dark:bg-black/40 border border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-400 px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 mt-auto"
               >
                 Iniciar Análise e Reparo
               </button>
             )}
           </div>
 
-          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 p-6 rounded-2xl relative flex flex-col group hover:border-red-300 dark:hover:border-red-900/80 transition-colors">
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 p-6 rounded-2xl relative flex flex-col group transition-colors">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">
                 <ShieldAlert className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-red-700 dark:text-red-500">Limpeza Destrutiva</h3>
+              <h3 className="text-sm font-bold tracking-tight text-red-700 dark:text-red-500">Limpeza Destrutiva</h3>
             </div>
             
-            <p className="text-red-800/80 dark:text-red-200/70 text-sm mb-6 flex-grow leading-relaxed">
-              Exclui permanentemente todo o histórico de transações registradas antes de 1º de Maio de 2026. Esta operação <strong>não possui rollback</strong>.
+            <p className="text-red-800/80 dark:text-red-200/70 text-sm mb-6 flex-grow leading-relaxed font-medium">
+              Exclui permanentemente todo o histórico de transações registradas antes de 1º de Maio de 2026. Esta operação não possui rollback.
             </p>
             
             {deleteStatusMsg && (
-              <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg border border-red-200/50 dark:border-red-900/30 mb-4">
+              <div className="p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-red-200/50 dark:border-red-900/30 mb-4">
                  <p className="text-sm font-medium text-red-800 dark:text-red-300">{deleteStatusMsg}</p>
               </div>
             )}
 
             {confirmDelete ? (
-              <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+              <div className="flex flex-col xl:flex-row items-stretch gap-2 mt-auto">
                 <button 
                   disabled={isDeleting}
                   onClick={handleDeleteOldTransactions}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50"
                 >
                   {isDeleting ? <div className="w-4 h-4 border-2 border-white border-r-transparent rounded-full animate-spin"></div> : <Trash2 className="w-4 h-4" />}
                   {isDeleting ? 'Apagando...' : 'Confirmar Exclusão'}
@@ -557,7 +613,7 @@ export function SettingsTab({ user, userSettings }: Props) {
                 <button 
                   disabled={isDeleting}
                   onClick={() => setConfirmDelete(false)}
-                  className="flex-1 bg-white dark:bg-[#121214] border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-800 dark:text-red-300 px-4 py-2.5 rounded-xl font-medium text-sm transition"
+                  className="flex-[0.5] bg-white dark:bg-black/40 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-800 dark:text-red-300 px-4 py-2.5 rounded-xl font-semibold text-xs transition"
                 >
                   Cancelar
                 </button>
@@ -566,14 +622,15 @@ export function SettingsTab({ user, userSettings }: Props) {
               <button 
                 disabled={isDeleting || isFixing}
                 onClick={() => setConfirmDelete(true)}
-                className="w-full bg-white dark:bg-[#121214] border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-400 px-4 py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 mt-auto"
+                className="w-full bg-white dark:bg-black/40 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-400 px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 mt-auto"
               >
                 Inativar Registros Antigos
               </button>
             )}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
+
