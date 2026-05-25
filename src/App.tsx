@@ -490,6 +490,9 @@ function Dashboard({ user }: { user: User }) {
                       </div>
                    </div>
 
+                   {/* Quick Add For Dashboard */}
+                   <QuickAddTransaction userId={user.uid} userSettings={userSettings} />
+
                    {/* Planejamento Mensal */}
                    <MonthlyPlanning userId={user.uid} year={currentYear} month={currentMonth} budget={budget} />
 
