@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Plus, Trash2, PiggyBank, Calculator, HelpCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2, PiggyBank, Calculator, HelpCircle, PencilLine, X } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, updateDoc, setDoc, writeBatch } from 'firebase/firestore';
 import type { MonthlyBudget, PlannedExpense } from '../types';
@@ -15,6 +15,9 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
   const [isExpanded, setIsExpanded] = useState(false);
   const [plannedExpenses, setPlannedExpenses] = useState<PlannedExpense[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<PlannedExpense[]>([]);
+  
+  const [editingPlannedId, setEditingPlannedId] = useState<string | null>(null);
+  const [editingFixedId, setEditingFixedId] = useState<string | null>(null);
   
   const [plannedDesc, setPlannedDesc] = useState('');
   const [plannedAmt, setPlannedAmt] = useState('');
@@ -69,13 +72,20 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
     const val = parseFloat(plannedAmt.replace(/\./g, '').replace(',', '.'));
     if (isNaN(val) || val <= 0) return;
 
-    const newExpense: PlannedExpense = {
-      id: crypto.randomUUID(),
-      description: plannedDesc,
-      amount: val
-    };
+    let updatedExpenses;
+    if (editingPlannedId) {
+       updatedExpenses = plannedExpenses.map(exp => 
+          exp.id === editingPlannedId ? { ...exp, description: plannedDesc, amount: val } : exp
+       );
+       setEditingPlannedId(null);
+    } else {
+       updatedExpenses = [...plannedExpenses, {
+          id: crypto.randomUUID(),
+          description: plannedDesc,
+          amount: val
+       }];
+    }
 
-    const updatedExpenses = [...plannedExpenses, newExpense];
     setPlannedExpenses(updatedExpenses);
     setPlannedDesc('');
     setPlannedAmt('');
@@ -89,17 +99,48 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
     const val = parseFloat(fixedAmt.replace(/\./g, '').replace(',', '.'));
     if (isNaN(val) || val <= 0) return;
 
-    const newExpense: PlannedExpense = {
-      id: crypto.randomUUID(),
-      description: fixedDesc,
-      amount: val
-    };
+    let updatedExpenses;
+    if (editingFixedId) {
+       updatedExpenses = fixedExpenses.map(exp => 
+          exp.id === editingFixedId ? { ...exp, description: fixedDesc, amount: val } : exp
+       );
+       setEditingFixedId(null);
+    } else {
+       updatedExpenses = [...fixedExpenses, {
+          id: crypto.randomUUID(),
+          description: fixedDesc,
+          amount: val
+       }];
+    }
 
-    const updatedExpenses = [...fixedExpenses, newExpense];
     setFixedExpenses(updatedExpenses);
     setFixedDesc('');
     setFixedAmt('');
     await saveExpenses(plannedExpenses, updatedExpenses);
+  };
+
+  const startEditPlanned = (exp: PlannedExpense) => {
+     setEditingPlannedId(exp.id);
+     setPlannedDesc(exp.description);
+     setPlannedAmt(formatCurrency(exp.amount).replace('R$', '').trim());
+  };
+
+  const cancelEditPlanned = () => {
+     setEditingPlannedId(null);
+     setPlannedDesc('');
+     setPlannedAmt('');
+  };
+
+  const startEditFixed = (exp: PlannedExpense) => {
+     setEditingFixedId(exp.id);
+     setFixedDesc(exp.description);
+     setFixedAmt(formatCurrency(exp.amount).replace('R$', '').trim());
+  };
+
+  const cancelEditFixed = () => {
+     setEditingFixedId(null);
+     setFixedDesc('');
+     setFixedAmt('');
   };
 
   const handleRemovePlanned = async (id: string) => {
@@ -195,13 +236,23 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
                      required
                    />
                  </div>
+                 {editingFixedId && (
+                   <button
+                     type="button"
+                     onClick={cancelEditFixed}
+                     className="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
+                     title="Cancelar Edição"
+                   >
+                     <X className="w-5 h-5" />
+                   </button>
+                 )}
                  <button
                    type="submit"
                    disabled={isSaving || !fixedDesc || !fixedAmt}
                    className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                   title="Adicionar Gasto Fixo"
+                   title={editingFixedId ? "Salvar Edição" : "Adicionar Gasto Fixo"}
                  >
-                   <Plus className="w-5 h-5" />
+                   {editingFixedId ? <PencilLine className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                  </button>
                </form>
                
@@ -210,14 +261,23 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
                    {fixedExpenses.map(expense => (
                      <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl group hover:border-gray-200 dark:hover:border-white/10 transition-colors">
                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-2">{expense.description}</span>
-                       <div className="flex items-center gap-3 shrink-0">
-                         <span className="text-sm font-mono tracking-tight text-gray-600 dark:text-gray-400">
+                       <div className="flex items-center gap-2 shrink-0">
+                         <span className="text-sm font-mono tracking-tight text-gray-600 dark:text-gray-400 mr-2">
                            {formatCurrency(expense.amount)}
                          </span>
+                         <button 
+                           onClick={() => startEditFixed(expense)}
+                           disabled={isSaving}
+                           className="text-gray-400 hover:text-indigo-500 transition-colors px-1"
+                           title="Editar"
+                         >
+                           <PencilLine className="w-4 h-4" />
+                         </button>
                          <button 
                            onClick={() => handleRemoveFixed(expense.id)}
                            disabled={isSaving}
                            className="text-gray-400 hover:text-red-500 transition-colors px-1"
+                           title="Remover"
                          >
                            <Trash2 className="w-4 h-4" />
                          </button>
@@ -263,13 +323,23 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
                      required
                    />
                  </div>
+                 {editingPlannedId && (
+                   <button
+                     type="button"
+                     onClick={cancelEditPlanned}
+                     className="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
+                     title="Cancelar Edição"
+                   >
+                     <X className="w-5 h-5" />
+                   </button>
+                 )}
                  <button
                    type="submit"
                    disabled={isSaving || !plannedDesc || !plannedAmt}
                    className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                   title="Adicionar Gasto Previsto"
+                   title={editingPlannedId ? "Salvar Edição" : "Adicionar Gasto Previsto"}
                  >
-                   <Plus className="w-5 h-5" />
+                   {editingPlannedId ? <PencilLine className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                  </button>
                </form>
 
@@ -278,14 +348,23 @@ export function MonthlyPlanning({ userId, year, month, budget }: MonthlyPlanning
                    {plannedExpenses.map(expense => (
                      <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl group hover:border-gray-200 dark:hover:border-white/10 transition-colors">
                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-2">{expense.description}</span>
-                       <div className="flex items-center gap-3 shrink-0">
-                         <span className="text-sm font-mono tracking-tight text-gray-600 dark:text-gray-400">
+                       <div className="flex items-center gap-2 shrink-0">
+                         <span className="text-sm font-mono tracking-tight text-gray-600 dark:text-gray-400 mr-2">
                            {formatCurrency(expense.amount)}
                          </span>
+                         <button 
+                           onClick={() => startEditPlanned(expense)}
+                           disabled={isSaving}
+                           className="text-gray-400 hover:text-indigo-500 transition-colors px-1"
+                           title="Editar"
+                         >
+                           <PencilLine className="w-4 h-4" />
+                         </button>
                          <button 
                            onClick={() => handleRemovePlanned(expense.id)}
                            disabled={isSaving}
                            className="text-gray-400 hover:text-red-500 transition-colors px-1"
+                           title="Remover"
                          >
                            <Trash2 className="w-4 h-4" />
                          </button>
