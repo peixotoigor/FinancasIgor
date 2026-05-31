@@ -25,7 +25,7 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
 
   const getBudget = (month: number): MonthlyBudget => {
     return budgets.find(b => b.month === month) || {
-      userId, year, month, salary: 0, reserve: 0, reserveOfReserve: 0, wallet: 0, walletWithdrawals: 0, emergencyWithdrawals: 0, updatedAt: Date.now()
+      userId, year, month, salary: 0, reserve: 0, reserveOfReserve: 0, wallet: 0, walletWithdrawals: 0, emergencyWithdrawals: 0, reserveWithdrawals: 0, updatedAt: Date.now()
     };
   };
 
@@ -65,6 +65,7 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
   let accWallet = 0;
   let accWalletWithdrawals = 0;
   let accEmergencyWithdrawals = 0;
+  let accReserveWithdrawals = 0;
 
   for (let i = 1; i <= activeMonth; i++) {
      const b = getBudget(i);
@@ -73,15 +74,16 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
      accWallet += b.wallet || 0;
      accWalletWithdrawals += b.walletWithdrawals || 0;
      accEmergencyWithdrawals += b.emergencyWithdrawals || 0;
+     accReserveWithdrawals += b.reserveWithdrawals || 0;
   }
 
-  const netAccReserve = accReserve;
+  const netAccReserve = accReserve - accReserveWithdrawals;
   const netAccReserveOfReserve = accReserveOfReserve - accEmergencyWithdrawals;
   const netAccWallet = accWallet - accWalletWithdrawals;
   const totalAcc = netAccReserve + netAccReserveOfReserve + netAccWallet;
 
   const totalReserved = (curBudget.reserve || 0) + (curBudget.reserveOfReserve || 0) + (curBudget.wallet || 0);
-  const totalWithdrawn = (curBudget.walletWithdrawals || 0) + (curBudget.emergencyWithdrawals || 0);
+  const totalWithdrawn = (curBudget.walletWithdrawals || 0) + (curBudget.emergencyWithdrawals || 0) + (curBudget.reserveWithdrawals || 0);
   const netReserves = totalReserved - totalWithdrawn;
 
   // Extract all historical withdrawals
@@ -89,7 +91,8 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
     return budgets.flatMap(b => {
       const w1 = (b.walletWithdrawalsDetails || []).map(w => ({ ...w, type: 'Carteira' as const, month: b.month }));
       const w2 = (b.emergencyWithdrawalsDetails || []).map(w => ({ ...w, type: 'Emergência' as const, month: b.month }));
-      return [...w1, ...w2];
+      const w3 = (b.reserveWithdrawalsDetails || []).map(w => ({ ...w, type: 'Principal' as const, month: b.month }));
+      return [...w1, ...w2, ...w3];
     }).sort((a, b) => b.date - a.date);
   }, [budgets]);
 
@@ -130,9 +133,9 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
          }
      };
      
-     sumBanks(b.reserveBanks, b.reserveBank, b.reserve || 0, 'reserve');
-     sumBanks(b.reserveOfReserveBanks, b.reserveOfReserveBank, b.reserveOfReserve || 0, 'reserveOfReserve');
-     sumBanks(b.walletBanks, b.walletBank, b.wallet || 0, 'wallet');
+     sumBanks(b.reserveBanks, b.reserveBank, (b.reserve || 0) - (b.reserveWithdrawals || 0), 'reserve');
+     sumBanks(b.reserveOfReserveBanks, b.reserveOfReserveBank, (b.reserveOfReserve || 0) - (b.emergencyWithdrawals || 0), 'reserveOfReserve');
+     sumBanks(b.walletBanks, b.walletBank, (b.wallet || 0) - (b.walletWithdrawals || 0), 'wallet');
   }
 
   const distributionData = Object.entries(aggregatedBanks)
@@ -195,17 +198,17 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-gray-100">Saques & Retiradas</h3>
                </div>
                
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                    <WithdrawalsManager 
-                      label="Saque Carteira" 
-                      withdrawals={curBudget.walletWithdrawalsDetails || []} 
+                      label="Saque Principal" 
+                      withdrawals={curBudget.reserveWithdrawalsDetails || []} 
                       onChange={(withdrawals, total) => {
-                          handleUpdate(activeMonth, 'walletWithdrawalsDetails', withdrawals);
-                          handleUpdate(activeMonth, 'walletWithdrawals', total);
+                          handleUpdate(activeMonth, 'reserveWithdrawalsDetails', withdrawals);
+                          handleUpdate(activeMonth, 'reserveWithdrawals', total);
                       }} 
-                      accValue={accWalletWithdrawals}
-                      bankBreakdown={curBudget.walletBanks}
-                      onBankBreakdownChange={(val) => handleUpdate(activeMonth, 'walletBanks', val)}
+                      accValue={accReserveWithdrawals}
+                      bankBreakdown={curBudget.reserveBanks}
+                      onBankBreakdownChange={(val) => handleUpdate(activeMonth, 'reserveBanks', val)}
                    />
                    <WithdrawalsManager 
                       label="Saque Emergência" 
@@ -217,6 +220,17 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
                       accValue={accEmergencyWithdrawals}
                       bankBreakdown={curBudget.reserveOfReserveBanks}
                       onBankBreakdownChange={(val) => handleUpdate(activeMonth, 'reserveOfReserveBanks', val)}
+                   />
+                   <WithdrawalsManager 
+                      label="Saque Carteira" 
+                      withdrawals={curBudget.walletWithdrawalsDetails || []} 
+                      onChange={(withdrawals, total) => {
+                          handleUpdate(activeMonth, 'walletWithdrawalsDetails', withdrawals);
+                          handleUpdate(activeMonth, 'walletWithdrawals', total);
+                      }} 
+                      accValue={accWalletWithdrawals}
+                      bankBreakdown={curBudget.walletBanks}
+                      onBankBreakdownChange={(val) => handleUpdate(activeMonth, 'walletBanks', val)}
                    />
                </div>
             </div>
@@ -323,9 +337,9 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
                                          {w.month === activeMonth && (
                                              <button 
                                                 onClick={() => {
-                                                    const fieldName = w.type === 'Carteira' ? 'walletWithdrawalsDetails' : 'emergencyWithdrawalsDetails';
-                                                    const totalName = w.type === 'Carteira' ? 'walletWithdrawals' : 'emergencyWithdrawals';
-                                                    const bankName = w.type === 'Carteira' ? 'walletBanks' : 'reserveOfReserveBanks';
+                                                    const fieldName = w.type === 'Carteira' ? 'walletWithdrawalsDetails' : (w.type === 'Principal' ? 'reserveWithdrawalsDetails' : 'emergencyWithdrawalsDetails');
+                                                    const totalName = w.type === 'Carteira' ? 'walletWithdrawals' : (w.type === 'Principal' ? 'reserveWithdrawals' : 'emergencyWithdrawals');
+                                                    const bankName = w.type === 'Carteira' ? 'walletBanks' : (w.type === 'Principal' ? 'reserveBanks' : 'reserveOfReserveBanks');
                                                     
                                                     const currentDetails = [...(curBudget[fieldName] || [])];
                                                     const currentTotal = curBudget[totalName] || 0;

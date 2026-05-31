@@ -139,6 +139,7 @@ function Dashboard({ user }: { user: User }) {
   const [txInitialType, setTxInitialType] = useState<'expense' | 'income'>('expense');
   const [txToEdit, setTxToEdit] = useState<Transaction | null>(null);
   const [budget, setBudget] = useState<MonthlyBudget | null>(null);
+  const [allBudgets, setAllBudgets] = useState<MonthlyBudget[]>([]);
   const [isReservesOpen, setIsReservesOpen] = useState(false);
   const [hideReservesValues, setHideReservesValues] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -208,6 +209,7 @@ function Dashboard({ user }: { user: User }) {
            
            if (mods.walletWithdrawals) undoData.walletWithdrawals = (b.walletWithdrawals || 0) - mods.walletWithdrawals;
            if (mods.emergencyWithdrawals) undoData.emergencyWithdrawals = (b.emergencyWithdrawals || 0) - mods.emergencyWithdrawals;
+           if (mods.reserveWithdrawals) undoData.reserveWithdrawals = (b.reserveWithdrawals || 0) - mods.reserveWithdrawals;
            if (mods.reserve) undoData.reserve = (b.reserve || 0) + mods.reserve;
            if (mods.walletAdd) undoData.wallet = (b.wallet || 0) - mods.walletAdd;
            
@@ -273,13 +275,16 @@ function Dashboard({ user }: { user: User }) {
      const bQ = query(
         collection(db, 'monthly_budgets'),
         where('userId', '==', user.uid),
-        where('year', '==', currentYear),
-        where('month', '==', currentMonth)
+        where('year', '==', currentYear)
      );
      const unsubB = onSnapshot(bQ, { includeMetadataChanges: true }, (snap) => {
         if (!snap.empty) {
-           setBudget({ id: snap.docs[0].id, ...snap.docs[0].data() } as MonthlyBudget);
+           const allBudg = snap.docs.map(d => ({ id: d.id, ...d.data() } as MonthlyBudget));
+           setAllBudgets(allBudg);
+           const current = allBudg.find(b => b.month === currentMonth);
+           setBudget(current || null);
         } else {
+           setAllBudgets([]);
            setBudget(null);
         }
         setSyncState(s => ({ ...s, budgets: snap.metadata.hasPendingWrites }));
@@ -324,6 +329,30 @@ function Dashboard({ user }: { user: User }) {
       return d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth;
     });
   }, [transactions, currentMonth, currentYear]);
+
+  const aggregatedReserve = useMemo(() => {
+     let accR = 0, accE = 0, accW = 0;
+     let wR = 0, wE = 0, wW = 0;
+     for (let i = 1; i <= currentMonth; i++) {
+        const b = allBudgets.find(b => b.month === i);
+        if (b) {
+           accR += b.reserve || 0;
+           accE += b.reserveOfReserve || 0;
+           accW += b.wallet || 0;
+           wR += b.reserveWithdrawals || 0;
+           wE += b.emergencyWithdrawals || 0;
+           wW += b.walletWithdrawals || 0;
+        }
+     }
+     return {
+        reserve: accR - wR,
+        reserveOfReserve: accE - wE,
+        wallet: accW - wW,
+        reserveWithdrawals: budget?.reserveWithdrawals || 0,
+        walletWithdrawals: budget?.walletWithdrawals || 0,
+        emergencyWithdrawals: budget?.emergencyWithdrawals || 0,
+     };
+  }, [allBudgets, currentMonth, budget]);
 
   const totalIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
   const totalExpense = currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
@@ -581,26 +610,38 @@ function Dashboard({ user }: { user: User }) {
                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
                                   <span className="text-xs text-gray-500 font-medium">Reserva Principal</span>
                                   <span className="text-sm font-mono tracking-tight font-medium text-emerald-600 dark:text-emerald-400">
-                                     {hideReservesValues ? '••••' : formatCurrency(budget.reserve)}
+                                     {hideReservesValues ? '••••' : formatCurrency(aggregatedReserve.reserve)}
+                                  </span>
+                               </div>
+                               <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
+                                  <span className="text-xs text-gray-500 font-medium">Reserva de Emergência</span>
+                                  <span className="text-sm font-mono tracking-tight font-medium text-orange-600 dark:text-orange-400">
+                                     {hideReservesValues ? '••••' : formatCurrency(aggregatedReserve.reserveOfReserve)}
                                   </span>
                                </div>
                                <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-white/5">
                                   <span className="text-xs text-gray-500 font-medium">Carteira Livre</span>
                                   <span className="text-sm font-mono tracking-tight font-medium text-blue-600 dark:text-blue-400">
-                                     {hideReservesValues ? '••••' : formatCurrency(budget.wallet)}
+                                     {hideReservesValues ? '••••' : formatCurrency(aggregatedReserve.wallet)}
                                   </span>
                                </div>
                                <div className="flex flex-col gap-1 mt-auto">
                                   <div className="flex justify-between items-center py-1">
-                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Carteira</span>
+                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Principal (Mês)</span>
                                      <span className="text-xs font-mono tracking-tight text-red-500">
-                                        {hideReservesValues ? '••••' : formatCurrency(budget.walletWithdrawals)}
+                                        {hideReservesValues ? '••••' : formatCurrency(aggregatedReserve.reserveWithdrawals)}
                                      </span>
                                   </div>
                                   <div className="flex justify-between items-center py-1">
-                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Emergência</span>
+                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Carteira (Mês)</span>
                                      <span className="text-xs font-mono tracking-tight text-red-500">
-                                        {hideReservesValues ? '••••' : formatCurrency(budget.emergencyWithdrawals)}
+                                        {hideReservesValues ? '••••' : formatCurrency(aggregatedReserve.walletWithdrawals)}
+                                     </span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1">
+                                     <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saques Emergência (Mês)</span>
+                                     <span className="text-xs font-mono tracking-tight text-red-500">
+                                        {hideReservesValues ? '••••' : formatCurrency(aggregatedReserve.emergencyWithdrawals)}
                                      </span>
                                   </div>
                                </div>

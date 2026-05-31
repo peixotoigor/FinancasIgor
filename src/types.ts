@@ -17,6 +17,7 @@ export interface Transaction {
   reserveModifications?: {
     walletWithdrawals?: number;
     emergencyWithdrawals?: number;
+    reserveWithdrawals?: number;
     reserve?: number;
     walletAdd?: number;
   };
@@ -53,8 +54,10 @@ export interface MonthlyBudget {
   reserveOfReserveBanks?: Record<string, number>;
   walletWithdrawals: number;
   emergencyWithdrawals: number;
+  reserveWithdrawals: number;
   walletWithdrawalsDetails?: Withdrawal[];
   emergencyWithdrawalsDetails?: Withdrawal[];
+  reserveWithdrawalsDetails?: Withdrawal[];
   plannedExpenses?: PlannedExpense[];
   updatedAt: number;
 }
