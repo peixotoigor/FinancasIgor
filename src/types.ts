@@ -59,6 +59,7 @@ export interface MonthlyBudget {
   emergencyWithdrawalsDetails?: Withdrawal[];
   reserveWithdrawalsDetails?: Withdrawal[];
   plannedExpenses?: PlannedExpense[];
+  fixedExpenses?: PlannedExpense[];
   updatedAt: number;
 }
 
