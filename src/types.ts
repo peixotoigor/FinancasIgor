@@ -13,6 +13,7 @@ export interface Transaction {
   installmentNumber?: number;
   groupId?: string;
   createdAt: number;
+  status?: 'pending' | 'paid';
   reserveModificationsMonth?: string;
   reserveModifications?: {
     walletWithdrawals?: number;
@@ -27,6 +28,12 @@ export interface PlannedExpense {
   id: string;
   description: string;
   amount: number;
+  isRecurring?: boolean;
+  frequency?: 'monthly' | 'yearly';
+  category?: string;
+  account?: string;
+  paymentMethod?: string;
+  card?: string;
 }
 
 export interface Withdrawal {
@@ -60,6 +67,15 @@ export interface MonthlyBudget {
   reserveWithdrawalsDetails?: Withdrawal[];
   plannedExpenses?: PlannedExpense[];
   fixedExpenses?: PlannedExpense[];
+  processedFixedExpenses?: string[];
+  processedPlannedExpenses?: string[];
+  aiForecast?: {
+    trends: string;
+    forecast: string;
+    forecastList?: { category: string; amount: string; details: string; examples?: { desc: string; val: string }[]; }[];
+    actionPlan: string;
+    generatedAt: number;
+  };
   updatedAt: number;
 }
 
@@ -87,5 +103,17 @@ export interface WebhookToken {
   id?: string;
   userId: string;
   token: string;
+  createdAt: number;
+}
+
+
+export interface Debt {
+  id: string;
+  userId: string;
+  name: string;
+  amount: number;
+  interestRate?: number;
+  installments?: number;
+  dueDate?: number;
   createdAt: number;
 }

@@ -3,7 +3,7 @@ import { auth, googleProvider, db, handleFirestoreError, OperationType } from '.
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Transaction } from './types';
 import { collection, query, where, onSnapshot, doc, setDoc, orderBy, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
-import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2, Copy } from 'lucide-react';
+import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, Landmark, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2, Copy } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TransactionModal } from './components/TransactionModal';
 import { AnalysisTab } from './components/AnalysisTab';
@@ -12,6 +12,7 @@ import { ReservesTab } from './components/ReservesTab';
 import { IntegrationTab } from './components/IntegrationTab';
 import { QuickAddTransaction } from './components/QuickAddTransaction';
 import { MonthlyPlanning } from './components/MonthlyPlanning';
+import { AIFinancialForecast } from "./components/AIFinancialForecast";
 import { MonthYearPicker } from './components/MonthYearPicker';
 import type { MonthlyBudget, UserSettings } from './types';
 
@@ -129,6 +130,7 @@ export default function App() {
 }
 
 import { SettingsTab } from './components/SettingsTab';
+import { DividasTab } from './components/DividasTab';
 
 function Dashboard({ user }: { user: User }) {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -140,6 +142,7 @@ function Dashboard({ user }: { user: User }) {
   const [txToEdit, setTxToEdit] = useState<Transaction | null>(null);
   const [budget, setBudget] = useState<MonthlyBudget | null>(null);
   const [allBudgets, setAllBudgets] = useState<MonthlyBudget[]>([]);
+  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
   const [isReservesOpen, setIsReservesOpen] = useState(false);
   const [hideReservesValues, setHideReservesValues] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -269,6 +272,7 @@ function Dashboard({ user }: { user: User }) {
      const unsub = onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
         const tr = snap.docs.map(d => ({ id: d.id, ...d.data() } as Transaction));
         setTransactions(tr);
+        setTransactionsLoaded(true);
         setSyncState(s => ({ ...s, transactions: snap.metadata.hasPendingWrites }));
      }, (err) => handleFirestoreError(err, OperationType.LIST, 'transactions'));
 
@@ -415,6 +419,10 @@ function Dashboard({ user }: { user: User }) {
              <BarChart3 className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'analysis' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
              <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'analysis' ? 'opacity-100' : 'opacity-0'}`}></div>
           </button>
+          <button onClick={() => setActiveTab('debts')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'debts' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Dívidas">
+             <Landmark className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'debts' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
+             <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'debts' ? 'opacity-100' : 'opacity-0'}`}></div>
+          </button>
           <button onClick={() => setActiveTab('integration')} className={`p-2.5 md:p-3 rounded-2xl transition-all duration-300 relative group flex flex-col items-center gap-1 ${activeTab === 'integration' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`} title="Integrações">
              <Bot className={`w-5 h-5 md:w-5 md:h-5 ${activeTab === 'integration' ? 'transform scale-110' : 'group-hover:scale-110 transition-transform'}`} />
              <div className={`absolute -bottom-1 md:-right-1 md:bottom-auto w-1 md:w-1 h-1 md:h-full rounded-full bg-emerald-500 transition-opacity ${activeTab === 'integration' ? 'opacity-100' : 'opacity-0'}`}></div>
@@ -442,7 +450,8 @@ function Dashboard({ user }: { user: User }) {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse hidden md:block"></span>
                 {activeTab === 'dashboard' ? 'Visão Geral' : 
                  activeTab === 'transactions' ? 'Transações' : 
-                 activeTab === 'reserves' ? 'Reservas' : 
+                 activeTab === 'reserves' ? 'Reservas' :
+                 activeTab === 'debts' ? 'Dívidas' : 
                  activeTab === 'analysis' ? 'Análise' : 
                  activeTab === 'integration' ? 'Integração' : 'Configurações'}
              </h1>
@@ -477,8 +486,8 @@ function Dashboard({ user }: { user: User }) {
 
         <div className="flex-1 flex flex-col gap-6 mt-4 md:mt-6 pb-20 md:pb-0">
            {activeTab === 'dashboard' && (
-             <div className="flex flex-col lg:flex-row gap-6 w-full max-w-[1600px] mx-auto h-full">
-                <div className="flex-1 min-w-0 flex flex-col gap-6 @container">
+             <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto relative" style={{ '--sidebar-width': `${rightSidebarWidth}px` } as React.CSSProperties}>
+                <div className="w-full lg:pr-[calc(var(--sidebar-width)+1.5rem)] flex flex-col gap-6 @container">
                    {/* Summary Cards */}
                    <div className="grid grid-cols-2 @2xl:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
                       {/* Receitas */}
@@ -521,9 +530,11 @@ function Dashboard({ user }: { user: User }) {
 
                    {/* Quick Add For Dashboard */}
                    <QuickAddTransaction userId={user.uid} userSettings={userSettings} />
+                   <AIFinancialForecast userId={user.uid} transactions={transactions} currentMonthBudget={budget} currentYear={currentYear} currentMonth={currentMonth} userSettings={userSettings} />
+
 
                    {/* Planejamento Mensal */}
-                   <MonthlyPlanning userId={user.uid} year={currentYear} month={currentMonth} budget={budget} />
+                   <MonthlyPlanning userId={user.uid} year={currentYear} month={currentMonth} budget={budget} transactions={currentMonthTransactions} transactionsLoaded={transactionsLoaded} userSettings={userSettings} />
 
                    <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4 lg:gap-6">
                       {/* Análise Mês */}
@@ -657,8 +668,7 @@ function Dashboard({ user }: { user: User }) {
 
                 {/* Right Column: Útlimas Transações */}
                 <div 
-                  className="w-full shrink-0 flex flex-col md:h-[400px] lg:h-[calc(100vh-2rem)] md:min-h-[250px] md:max-h-[85vh] bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm relative group/sidebar desktop-sidebar-width"
-                  style={{ '--sidebar-width': `${rightSidebarWidth}px` } as React.CSSProperties}
+                  className="w-full mt-6 lg:mt-0 shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm relative lg:absolute lg:top-0 lg:bottom-0 lg:right-0 group/sidebar h-[500px] lg:h-auto desktop-sidebar-width"
                 >
                    {/* Resize Handle */}
                    <div 
@@ -771,6 +781,10 @@ function Dashboard({ user }: { user: User }) {
 
            {activeTab === 'analysis' && (
              <AnalysisTab transactions={transactions} currentYear={currentYear} currentMonth={currentMonth} />
+           )}
+
+           {activeTab === 'debts' && (
+             <DividasTab userId={user.uid} userSettings={userSettings} />
            )}
 
            {activeTab === 'integration' && (

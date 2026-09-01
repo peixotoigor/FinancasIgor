@@ -23,6 +23,49 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+  app.post("/api/ai/forecast", async (req, res) => {
+    try {
+      const { prompt, openRouterKey, openRouterModel, systemInstruction } = req.body;
+      const defaultSysInfo = "Você é um consultor financeiro sênior e matemático. Forneça respostas diretas e precisas.";
+      const sysInstruction = systemInstruction || defaultSysInfo;
+      
+      if (openRouterKey) {
+         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+               "Content-Type": "application/json",
+               "Authorization": `Bearer ${openRouterKey}`,
+               "HTTP-Referer": "https://aistudio.google.com",
+               "X-Title": "AI Studio Finance"
+            },
+            body: JSON.stringify({
+               model: openRouterModel || "google/gemini-2.5-flash",
+               temperature: 0.2,
+               messages: [
+                 { role: "system", content: sysInstruction },
+                 { role: "user", content: prompt }
+               ]
+            })
+         });
+         const data = await response.json();
+         if (!data.choices || !data.choices[0]) throw new Error(data.error ? JSON.stringify(data.error) : "Invalid response from OpenRouter");
+         res.json({ text: data.choices[0].message.content });
+      } else {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                systemInstruction: sysInstruction,
+                temperature: 0.2
+            }
+        });
+        res.json({ text: response.text });
+      }
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   const processTelegramPayload = async (update: any, botToken: string) => {
     try {

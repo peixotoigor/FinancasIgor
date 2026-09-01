@@ -78,6 +78,7 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
             installments: actualInstallments > 1 ? actualInstallments : undefined,
             installmentNumber: actualInstallments > 1 ? i : undefined,
             groupId,
+            status: 'paid',
             createdAt: Date.now()
         };
         await addDoc(collection(db, 'transactions'), payload);

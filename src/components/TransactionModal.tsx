@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, UserSettings } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { doc, setDoc, collection, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, setDoc, collection, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { X, Plus, Trash2, Pencil, MoreVertical } from 'lucide-react';
 
 export function TransactionModal({ isOpen, onClose, userId, userSettings, initialData, initialType }: { isOpen: boolean, onClose: () => void, userId: string, userSettings: UserSettings, initialData?: Transaction | null, initialType?: 'expense' | 'income' }) {
@@ -14,7 +14,10 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
   const [paymentMethod, setPaymentMethod] = useState('Crédito');
   const [card, setCard] = useState('');
   const [installments, setInstallments] = useState(1);
+  const [status, setStatus] = useState<'pending' | 'paid'>('paid');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePeriod, setRecurrencePeriod] = useState<'monthly' | 'yearly'>('monthly');
   
   // Set defaults when modal opens
   useEffect(() => {
@@ -23,6 +26,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
             setType(initialData.type);
             setDescription(initialData.description);
             setAmount(initialData.amount.toString());
+            setStatus(initialData.status || 'paid');
             
             const localDate = new Date(initialData.date);
             const yyyy = localDate.getFullYear();
@@ -40,7 +44,9 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
             setAccount(initialData.account || '');
             setPaymentMethod(initialData.paymentMethod || '');
             setCard(initialData.card || (userSettings?.cards?.length ? userSettings.cards[0] : ''));
-            setInstallments(1); // Only edit single installment
+            setInstallments(1);
+            setIsRecurring(false);
+            setRecurrencePeriod('monthly'); // Only edit single installment
         } else {
             setType(initialType || 'expense');
             setDescription('');
@@ -49,6 +55,8 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
             setAccount('');
             setPaymentMethod('Crédito');
             setInstallments(1);
+            setIsRecurring(false);
+            setRecurrencePeriod('monthly');
             if (userSettings?.categories?.length) setCategory(userSettings.categories[0]);
             if (userSettings?.cards?.length) setCard(userSettings.cards[0]);
         }
@@ -75,6 +83,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
               date: baseDate.getTime(),
               type,
               category,
+              status,
           };
           if (type === 'expense') {
               payload.account = account;
@@ -92,7 +101,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
           await updateDoc(doc(db, 'transactions', initialData.id), payload);
       } else {
           // Create new transaction(s)
-          const actualInstallments = type === 'expense' && paymentMethod === 'Crédito' ? installments : 1;
+          const actualInstallments = type === 'expense' && !isRecurring && paymentMethod === 'Crédito' ? installments : 1;
           const groupId = actualInstallments > 1 ? crypto.randomUUID() : undefined;
           const perInstallmentAmount = Number((parsedAmount / actualInstallments).toFixed(2));
           let remainingAmount = parsedAmount;
@@ -128,11 +137,63 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
               installments: actualInstallments > 1 ? actualInstallments : undefined,
               installmentNumber: actualInstallments > 1 ? i : undefined,
               groupId,
+              status,
               createdAt: Date.now()
             };
 
             const docRef = doc(collection(db, 'transactions'));
             await setDoc(docRef, payload);
+          }
+          
+          if (type === 'expense' && isRecurring) {
+            const d = new Date(date + 'T12:00:00');
+            const year = d.getFullYear();
+            const month = d.getMonth() + 1;
+            const expenseId = crypto.randomUUID();
+            
+            const newFixedExpense = {
+              id: expenseId,
+              description: description,
+              amount: parsedAmount,
+              isRecurring: true,
+              frequency: recurrencePeriod,
+              category: category,
+              account: account,
+              paymentMethod: paymentMethod,
+              card: (paymentMethod === 'Crédito' || paymentMethod === 'Débito') ? card : undefined
+            };
+            
+            const batch = writeBatch(db);
+            
+            if (recurrencePeriod === 'monthly') {
+               for (let m = month; m <= 12; m++) {
+                  const docId = `${userId}_${year}_${m}`;
+                  const docRef = doc(db, 'monthly_budgets', docId);
+                  const updates: any = {
+                     fixedExpenses: arrayUnion(newFixedExpense),
+                     updatedAt: Date.now()
+                  };
+                  if (m === month) {
+                     updates.processedFixedExpenses = arrayUnion(expenseId);
+                  }
+                  batch.set(docRef, updates, { merge: true });
+               }
+            } else if (recurrencePeriod === 'yearly') {
+               for (let y = year; y <= year + 5; y++) {
+                  const docId = `${userId}_${y}_${month}`;
+                  const docRef = doc(db, 'monthly_budgets', docId);
+                  const updates: any = {
+                     fixedExpenses: arrayUnion(newFixedExpense),
+                     updatedAt: Date.now()
+                  };
+                  if (y === year) {
+                     updates.processedFixedExpenses = arrayUnion(expenseId);
+                  }
+                  batch.set(docRef, updates, { merge: true });
+               }
+            }
+            
+            await batch.commit();
           }
       }
       
@@ -299,7 +360,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
              </div>
            )}
 
-           {(!initialData?.id) && paymentMethod === 'Crédito' && type === 'expense' && (
+           {(!initialData?.id) && !isRecurring && paymentMethod === 'Crédito' && type === 'expense' && (
                <div className="space-y-1">
                   <label className="text-[10px] text-gray-400 uppercase font-semibold">Parcelas</label>
                   <input required type="number" min="1" max="48" value={installments} onChange={e => setInstallments(Number(e.target.value))} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition" />
@@ -313,6 +374,34 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
                      </div>
                   )}
                </div>
+           )}
+
+           {type === 'expense' && (
+              <div className="space-y-1">
+                 <label className="text-[10px] text-gray-400 uppercase font-semibold">Status</label>
+                 <div className="flex gap-2">
+                   <button type="button" onClick={() => setStatus('paid')} className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition ${status === 'paid' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-white border border-transparent'}`}>Pago</button>
+                   <button type="button" onClick={() => setStatus('pending')} className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition ${status === 'pending' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/50 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-white border border-transparent'}`}>Pendente</button>
+                 </div>
+              </div>
+           )}
+
+           {!initialData?.id && type === 'expense' && (
+             <div className="space-y-2 p-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl">
+               <label className="flex items-center gap-2 cursor-pointer w-max">
+                 <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-4 h-4 text-indigo-500 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-white dark:bg-[#1A1A1D]" />
+                 <span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">Tornar Recorrente</span>
+               </label>
+               {isRecurring && (
+                 <div className="pt-2 border-t border-indigo-200 dark:border-indigo-500/30">
+                   <label className="text-[10px] text-indigo-700 dark:text-indigo-400 uppercase font-semibold block mb-1">Periodicidade</label>
+                   <select value={recurrencePeriod} onChange={e => setRecurrencePeriod(e.target.value as any)} className="w-full bg-white dark:bg-[#0A0A0B] border border-indigo-200 dark:border-indigo-500/30 rounded-lg p-2 text-sm text-indigo-900 dark:text-indigo-200 focus:outline-none focus:border-indigo-500/50 transition">
+                     <option value="monthly">Mensal (todos os meses)</option>
+                     <option value="yearly">Anual (este mês todo ano)</option>
+                   </select>
+                 </div>
+               )}
+             </div>
            )}
 
            <button disabled={isSubmitting} className="w-full mt-4 bg-emerald-500 text-black py-4 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition hover:shadow-emerald-500/40 disabled:opacity-50">

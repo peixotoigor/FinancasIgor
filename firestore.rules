@@ -117,5 +117,35 @@ service cloud.firestore {
         
       allow list: if true;
     }
+
+    function isValidDebt(data) {
+      return data.keys().hasAll(['userId', 'name', 'amount', 'createdAt'])
+        && data.userId is string && (request.auth == null || data.userId == request.auth.uid)
+        && data.name is string && data.name.size() <= 200
+        && data.amount is number
+        && (data.get('interestRate', 0) is number)
+        && (data.get('installments', 1) is number)
+        && (data.get('dueDate', 1) is number)
+        && data.createdAt is number;
+    }
+
+    match /debts/{debtId} {
+      allow create: if true
+        && isValidId(debtId)
+        && isValidDebt(incoming());
+      
+      allow update: if true
+        && isValidId(debtId)
+        && (request.auth == null || existing().userId == request.auth.uid)
+        && isValidDebt(incoming())
+        && incoming().userId == existing().userId;
+      
+      allow delete: if isSignedIn()
+        && isValidId(debtId)
+        && existing().userId == request.auth.uid;
+        
+      allow get: if true;
+      allow list: if true;
+    }
   }
 }
