@@ -39,7 +39,7 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
     const deltaY = y - startYRef.current;
     
     if (deltaY > 0 && scrollRef.current && scrollRef.current.scrollTop <= 0) {
-      const pullDistance = Math.min(deltaY * 0.4, 80); // Resistance factor
+      const pullDistance = Math.min(deltaY * 0.4, 80);
       setPullY(pullDistance);
     }
   };
@@ -51,7 +51,6 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
     if (pullY >= 60) {
       setIsRefreshing(true);
       setPullY(60); 
-      // Simulate real network request sync (since onSnapshot handles actual real-time)
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsRefreshing(false);
     }
@@ -75,7 +74,6 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
       }
     }
     
-    // Fallback to description matching for legacy/imported data
     const match = t.description.match(/^(.*?) ?\((\d+)\/(\d+)\) ?(.*)$/);
     if (match) {
       const base1 = match[1];
@@ -125,7 +123,7 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
   const getStyleForCategory = (cat: string) => {
     const col = userSettings?.categoryColors?.[cat];
     if (!col) return {};
-    return { backgroundColor: col + '20', color: col, borderColor: col + '30' }; // 20 is low opacity hex (approx 12%)
+    return { backgroundColor: col + '20', color: col, borderColor: col + '30' };
   };
 
   const getStyleForCard = (card: string) => {
@@ -136,16 +134,13 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      // Type filter
       if (filterType !== 'all' && t.type !== filterType) return false;
       
-      // Search filter
       if (searchTerm) {
         const searchLow = searchTerm.toLowerCase();
         if (!t.description.toLowerCase().includes(searchLow) && !t.category.toLowerCase().includes(searchLow)) return false;
       }
       
-      // Month & Date range filter
       if (filterMonth === 'custom') {
         const tDate = new Date(t.date);
         tDate.setHours(0,0,0,0);
@@ -167,7 +162,6 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
     });
   }, [transactions, filterType, searchTerm, filterMonth, filterStartDate, filterEndDate]);
 
-  // Extract unique months for the filter dropdown
   const uniqueMonths = useMemo(() => {
     const m = new Set<string>();
     transactions.forEach(t => {
@@ -178,24 +172,27 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
   }, [transactions]);
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl flex flex-col h-full max-h-[800px] shadow-sm">
-       <div className="p-4 border-b border-gray-200 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#121214] rounded-t-2xl shrink-0">
-          <h2 className="text-sm text-gray-800 dark:text-gray-200 font-bold tracking-tight">Transações</h2>
+    <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm flex flex-col h-full max-h-[850px] overflow-hidden font-sans">
+       <div className="p-4 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#121214] shrink-0">
+          <div>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">Transações</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Extrato detalhado de movimentações</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-none">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
                 type="text" 
-                placeholder="Buscar..." 
+                placeholder="Buscar transação..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full sm:w-48 pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full sm:w-48 pl-9 pr-3 py-1.5 bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl text-xs text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <select 
               value={filterType} 
               onChange={e => setFilterType(e.target.value as any)}
-              className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+              className="bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
             >
               <option value="all">Todas</option>
               <option value="expense">Despesas</option>
@@ -210,10 +207,10 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
                   setFilterEndDate('');
                 }
               }}
-              className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+              className="bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
             >
               <option value="all">Todo período</option>
-              <option value="custom">Período customizado</option>
+              <option value="custom">Personalizado</option>
               {uniqueMonths.map(m => {
                 const [yyyy, mm] = m.split('-');
                 const date = new Date(parseInt(yyyy), parseInt(mm) - 1);
@@ -221,29 +218,31 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
               })}
             </select>
             {filterMonth === 'custom' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <input 
-                  type="date"
+                  type="date" 
                   value={filterStartDate}
                   onChange={e => setFilterStartDate(e.target.value)}
-                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1 text-xs text-gray-900 dark:text-white"
                 />
-                <span className="text-gray-400 text-xs text-center px-1">até</span>
+                <span className="text-gray-400 text-xs">/</span>
                 <input 
-                  type="date"
+                  type="date" 
                   value={filterEndDate}
                   onChange={e => setFilterEndDate(e.target.value)}
-                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1 text-xs text-gray-900 dark:text-white"
                 />
               </div>
             )}
           </div>
        </div>
+
        {userId && (
-          <div className="p-4 px-4 sm:px-6 pb-0 pt-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01] @container">
+          <div className="p-4 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0A0A0B]/50">
             <QuickAddTransaction userId={userId} userSettings={userSettings} />
           </div>
        )}
+
        <div 
          ref={scrollRef}
          className="overflow-auto flex-1 p-0 relative"
@@ -259,75 +258,68 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
               opacity: pullY / 60
             }}
           >
-            <RefreshCw className={`w-5 h-5 text-emerald-500 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullY * 3}deg)` }} />
+             <div className="flex items-center gap-2 text-xs text-gray-500 font-medium py-2">
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
+                <span>{isRefreshing ? 'Sincronizando...' : pullY >= 60 ? 'Solte para atualizar' : 'Puxe para atualizar'}</span>
+             </div>
           </div>
+
           <div 
-            className={`w-full flex-1 flex flex-col p-2 sm:p-4 gap-1 ${!isPulling ? 'transition-transform duration-200' : ''}`}
-            style={{ transform: `translateY(${pullY}px)` }}
+             className={`divide-y divide-gray-100 dark:divide-white/5 ${!isPulling ? 'transition-all duration-200' : ''}`}
+             style={{ transform: `translateY(${pullY}px)` }}
           >
              {filteredTransactions.map(t => {
-                const m = new Date(t.date).getMonth() + 1; // 1-12
-                const monthColorsClass = [
-                  '', // 0 not used
-                  'bg-red-500/5 hover:bg-red-500/10 dark:bg-red-500/10 dark:hover:bg-red-500/20', // Jan
-                  'bg-orange-500/5 hover:bg-orange-500/10 dark:bg-orange-500/10 dark:hover:bg-orange-500/20', // Feb
-                  'bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20', // Mar
-                  'bg-lime-500/5 hover:bg-lime-500/10 dark:bg-lime-500/10 dark:hover:bg-lime-500/20', // Apr
-                  'bg-emerald-500/5 hover:bg-emerald-500/10 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20', // May
-                  'bg-teal-500/5 hover:bg-teal-500/10 dark:bg-teal-500/10 dark:hover:bg-teal-500/20', // Jun
-                  'bg-sky-500/5 hover:bg-sky-500/10 dark:bg-sky-500/10 dark:hover:bg-sky-500/20', // Jul
-                  'bg-blue-500/5 hover:bg-blue-500/10 dark:bg-blue-500/10 dark:hover:bg-blue-500/20', // Aug
-                  'bg-indigo-500/5 hover:bg-indigo-500/10 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20', // Sep
-                  'bg-violet-500/5 hover:bg-violet-500/10 dark:bg-violet-500/10 dark:hover:bg-violet-500/20', // Oct
-                  'bg-fuchsia-500/5 hover:bg-fuchsia-500/10 dark:bg-fuchsia-500/10 dark:hover:bg-fuchsia-500/20', // Nov
-                  'bg-rose-500/5 hover:bg-rose-500/10 dark:bg-rose-500/10 dark:hover:bg-rose-500/20', // Dec
-                ];
-                const rowBgClass = monthColorsClass[m] || 'hover:bg-gray-50 dark:hover:bg-white/5';
-
                 return (
-                <div key={t.id} onClick={(e) => { e.stopPropagation(); onEdit && onEdit(t); }} className={`${rowBgClass} flex items-center justify-between p-3 sm:p-4 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-gray-100 dark:hover:border-white/5`}>
-                   <div className="flex flex-col min-w-0 pr-2">
+                <div 
+                  key={t.id} 
+                  onClick={(e) => { e.stopPropagation(); onEdit && onEdit(t); }} 
+                  className="flex items-center justify-between p-3.5 sm:p-4 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors group"
+                >
+                   <div className="flex flex-col min-w-0 pr-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate pb-0.5">{t.description} {t.installments ? <span className="opacity-50 text-[10px] bg-gray-200 dark:bg-white/10 px-1 rounded ml-2 font-semibold uppercase tracking-widest">{t.installmentNumber}/{t.installments}</span> : ''}</span>
-                        {t.status === 'pending' && <span className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0">Pendente</span>}
+                        <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{t.description}</span>
+                        {t.installments ? (
+                          <span className="text-[10px] bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-mono">
+                            {t.installmentNumber}/{t.installments}
+                          </span>
+                        ) : null}
+                        {t.status === 'pending' && (
+                          <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                            Pendente
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                         <span className="text-[10px] text-gray-500 shrink-0">
-                            {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-gray-400">
+                         <span>
+                            {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                          </span>
                          
-                         <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
+                         <span>&bull;</span>
                          
-                         <div className="flex items-center gap-1.5">
-                            <div 
-                              className="w-2 h-2 rounded-full" 
-                              style={{ backgroundColor: userSettings?.categoryColors?.[t.category] || '#9ca3af' }}
-                            />
-                            <span className="text-[10px] text-gray-500 capitalize tracking-wide">{t.category}</span>
-                         </div>
+                         <span 
+                           className="px-2 py-0.5 rounded-md text-[11px] font-medium"
+                           style={getStyleForCategory(t.category)}
+                         >
+                           {t.category}
+                         </span>
 
                          {t.paymentMethod && (
                             <>
-                               <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
-                               <div className="flex items-center gap-1.5">
-                                  {t.card && (
-                                     <div 
-                                       className="w-2 h-2 rounded-full"
-                                       style={{ backgroundColor: userSettings?.cardColors?.[t.card] || '#9ca3af' }}
-                                     />
-                                  )}
-                                  <span className="text-[10px] text-gray-500 truncate max-w-[150px]">
-                                     {t.type === 'income' ? 'Receita' : (t.paymentMethod === 'Crédito' || t.paymentMethod === 'Débito' ? t.paymentMethod : 'Despesa')}
-                                     {t.card ? ` • ${t.card}` : (t.paymentMethod !== 'Crédito' && t.paymentMethod !== 'Débito' ? ` • ${t.paymentMethod}` : '')}
-                                  </span>
-                               </div>
+                               <span>&bull;</span>
+                               <span 
+                                 className="px-2 py-0.5 rounded-md text-[11px] font-medium"
+                                 style={t.card ? getStyleForCard(t.card) : {}}
+                               >
+                                  {t.type === 'income' ? 'Receita' : t.paymentMethod}
+                                  {t.card ? ` (${t.card})` : ''}
+                               </span>
                             </>
                          )}
                       </div>
                    </div>
-                   <div className="flex items-center gap-1 sm:gap-3">
-                     <span className={`text-sm font-mono tracking-tight font-medium shrink-0 mr-1 sm:mr-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                     <span className={`text-sm sm:text-base font-semibold font-mono ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                        {t.type === 'income' ? '+ ' : '- '}{formatCurrency(t.amount)}
                      </span>
                      <button 
                         onClick={(e) => { 
@@ -337,74 +329,74 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
                               onEdit(copyTx as Transaction);
                            } 
                         }} 
-                        className="text-gray-400 hover:text-emerald-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" 
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" 
                         title="Duplicar"
                      >
-                       <Copy className="w-4 h-4" />
+                       <Copy className="w-3.5 h-3.5" />
                      </button>
                      <button 
                         onClick={(e) => { 
                            e.stopPropagation(); 
                            setTransactionToDelete(t); 
                         }} 
-                        className="text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white dark:hover:bg-white/10 active:bg-gray-100 dark:active:bg-white/20 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-white/10 bg-white/50 dark:bg-[#121214]/50" 
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" 
                         title="Excluir"
                      >
-                       <Trash2 className="w-4 h-4" />
+                       <Trash2 className="w-3.5 h-3.5" />
                      </button>
                    </div>
                 </div>
                 );
              })}
              {filteredTransactions.length === 0 && (
-                <div className="p-8 text-center text-gray-500">Nenhuma transação encontrada.</div>
+                <div className="p-12 text-center text-gray-400 text-sm">
+                  Nenhuma transação encontrada no período.
+                </div>
              )}
           </div>
        </div>
 
       {transactionToDelete && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Excluir Transação</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 p-6 max-w-sm w-full rounded-3xl shadow-xl flex flex-col gap-4">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Excluir Transação</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               Tem certeza de que deseja excluir <strong>{transactionToDelete.description}</strong>?
             </p>
             
             {isInstallment(transactionToDelete) && (
-              <label className="flex items-start gap-3 mb-6 p-3 bg-gray-50 dark:bg-[#0A0A0B] rounded-xl border border-gray-200 dark:border-white/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 transition">
+              <label className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer">
                 <input 
                   type="checkbox" 
                   checked={deleteSubsequent}
                   onChange={e => setDeleteSubsequent(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500"
+                  className="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500 w-4 h-4"
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Excluir também as <strong>{getSubsequentInstallments(transactionToDelete).length}</strong> parcelas futuras relacionadas a esta transação.
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  Excluir também as <strong>{getSubsequentInstallments(transactionToDelete).length}</strong> parcelas futuras relacionadas.
                 </span>
               </label>
             )}
 
-            <div className="flex gap-3 justify-end mt-2">
+            <div className="flex gap-2 justify-end mt-2">
               <button 
                 onClick={() => setTransactionToDelete(null)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button 
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 text-xs font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-colors disabled:opacity-50"
               >
-                {isDeleting ? 'Excluindo...' : 'Excluir'}
+                {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
-

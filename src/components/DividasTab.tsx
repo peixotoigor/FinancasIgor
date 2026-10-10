@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
-import { Plus, Trash2, TrendingDown, Calendar, Percent, Landmark, PencilLine, X, Bot, Send, ArrowRight, BrainCircuit } from 'lucide-react';
+import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, addDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { Plus, Trash2, TrendingDown, Calendar, Percent, Landmark, PencilLine, X, Bot, Send, ArrowRight, BrainCircuit, History, Undo2, Save } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
-import type { Debt, UserSettings } from '../types';
+import type { Debt, UserSettings, Transaction } from '../types';
 
 interface DividasTabProps {
   userId: string;
@@ -30,6 +30,14 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [paymentModalDebt, setPaymentModalDebt] = useState<Debt | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+
+  // History Modal States
+  const [historyModalDebt, setHistoryModalDebt] = useState<Debt | null>(null);
+  const [debtPayments, setDebtPayments] = useState<Transaction[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isProcessingHistory, setIsProcessingHistory] = useState(false);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editingPaymentAmount, setEditingPaymentAmount] = useState('');
 
   useEffect(() => {
     if (!userId) return;
@@ -116,36 +124,107 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
     setAiProjection('');
     
     try {
-            const prompt = `Aja como um consultor financeiro. O usuário tem uma dívida de R$ ${debt.amount.toFixed(2)} chamada "${debt.name}"${debt.interestRate ? ` com juros de ${debt.interestRate}% ao mês` : ''}.\nA renda média mensal dele nos últimos 6 meses é de R$ ${averageIncome.toFixed(2)}.\nResponda de forma direta e curta:\n1. Avalie rapidamente se o valor dessa dívida está alto ou tranquilo para essa renda média (máx 2 linhas).\n2. Calcule e sugira projeções exatas de pagamento (valor da parcela mensal) para quitar a dívida em 3x, 6x, 9x e 12x, considerando os juros (se houver).\nFormate com emojis e bullet points limpos.`;
+      const prompt = "Aja como um consultor financeiro. O usuário tem uma dívida de R$ " + debt.amount.toFixed(2) + " chamada \"" + debt.name + "\"" + (debt.interestRate ? " com juros de " + debt.interestRate + "% ao mês" : "") + ". A renda média mensal dele nos últimos 6 meses é de R$ " + averageIncome.toFixed(2) + ". Responda de forma direta e curta: 1. Avalie rapidamente se o valor dessa dívida está alto ou tranquilo para essa renda média (máx 2 linhas). 2. Calcule e sugira projeções exatas de pagamento (valor da parcela mensal) para quitar a dívida em 3x, 6x, 9x e 12x, considerando os juros (se houver). Formate com emojis e bullet points limpos.";
 
       const response = await fetch('/api/ai/forecast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt,
-          systemInstruction: "Você é um consultor financeiro sênior especializado em planejamento e quitação de dívidas para brasileiros. Forneça respostas exatas, realistas e financeiramente matemáticas e diretas, estruturadas com bullet points limpos.",
-          openRouterKey: userSettings?.openRouterApiKey,
-          openRouterModel: userSettings?.openRouterModel
+          openRouterKey: userSettings?.aiProvider === 'openrouter' ? userSettings?.openRouterApiKey : undefined,
+          openRouterModel: userSettings?.aiProvider === 'openrouter' ? userSettings?.openRouterModel : undefined
         })
       });
       const data = await response.json();
-      if (!response.ok) {
-         const errMsg = typeof data.error === 'string' ? data.error : (data.error?.message || 'Erro na API');
-         if (errMsg.toLowerCase().includes('api key')) {
-             throw new Error('⚠️ Ops! Sua Chave de API do Gemini não está configurada ou é inválida. Vá em Configurações (Settings) e adicione uma chave válida para usar a IA.');
-         }
-         throw new Error(errMsg);
-      }
-      setAiProjection(data.text || 'Nenhuma projeção gerada.');
-    } catch (error: any) {
+      setAiProjection(data.text || data.error || 'Erro ao gerar projeção.');
+    } catch (error) {
       console.error(error);
-      setAiProjection(error.message || 'Desculpe, não foi possível gerar a projeção no momento.');
+      setAiProjection('Desculpe, não foi possível gerar a projeção no momento.');
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  const handlePostPayment = async (e: React.FormEvent) => {
+  
+  const openHistoryModal = async (debt: Debt) => {
+    setHistoryModalDebt(debt);
+    setIsLoadingHistory(true);
+    try {
+      const q = query(collection(db, 'transactions'), where('linkedDebtId', '==', debt.id));
+      const snapshot = await getDocs(q);
+      const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+      payments.sort((a, b) => b.date - a.date);
+      setDebtPayments(payments);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const undoPayment = async (payment: Transaction) => {
+    if (!historyModalDebt) return;
+    setIsProcessingHistory(true);
+    try {
+      const batch = writeBatch(db);
+      
+      // Delete transaction
+      batch.delete(doc(db, 'transactions', payment.id));
+      
+      // Restore debt amount
+      const debtRef = doc(db, 'debts', historyModalDebt.id);
+      const newDebtAmount = historyModalDebt.amount + payment.amount;
+      batch.set(debtRef, { amount: newDebtAmount }, { merge: true });
+      
+      await batch.commit();
+      
+      // Update local state
+      setDebtPayments(prev => prev.filter(p => p.id !== payment.id));
+      setHistoryModalDebt({ ...historyModalDebt, amount: newDebtAmount });
+      
+    } catch (err) {
+      console.error(err);
+      console.error('Erro ao desfazer pagamento');
+    } finally {
+      setIsProcessingHistory(false);
+    }
+  };
+
+  const saveEditedPayment = async (payment: Transaction) => {
+    if (!historyModalDebt || !editingPaymentAmount) return;
+    
+    const newAmount = parseFloat(editingPaymentAmount.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(newAmount) || newAmount <= 0) return;
+    
+    setIsProcessingHistory(true);
+    try {
+      const diff = newAmount - payment.amount;
+      const batch = writeBatch(db);
+      
+      // Update transaction
+      batch.set(doc(db, 'transactions', payment.id), { amount: newAmount }, { merge: true });
+      
+      // Update debt amount (if payment increased, debt decreases. newDebt = oldDebt - diff)
+      const newDebtAmount = Math.max(0, historyModalDebt.amount - diff);
+      batch.set(doc(db, 'debts', historyModalDebt.id), { amount: newDebtAmount }, { merge: true });
+      
+      await batch.commit();
+      
+      // Update local state
+      setDebtPayments(prev => prev.map(p => p.id === payment.id ? { ...p, amount: newAmount } : p));
+      setHistoryModalDebt({ ...historyModalDebt, amount: newDebtAmount });
+      setEditingPaymentId(null);
+      setEditingPaymentAmount('');
+      
+    } catch (err) {
+      console.error(err);
+      console.error('Erro ao editar pagamento');
+    } finally {
+      setIsProcessingHistory(false);
+    }
+  };
+
+const handlePostPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentModalDebt || !paymentAmount) return;
     
@@ -161,7 +240,8 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
         type: 'expense',
         category: 'Dívidas e Empréstimos',
         date: Date.now(),
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        linkedDebtId: paymentModalDebt.id
       });
 
       // 2. Reduce debt amount
@@ -187,17 +267,16 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
       const debtId = editingId || crypto.randomUUID();
       const debtRef = doc(db, 'debts', debtId);
       
-      const debtData: any = {
+      const debtData: Debt = {
         id: debtId,
         userId,
         name,
         amount: numAmount,
+        interestRate: interestRate ? parseFloat(interestRate.replace(',', '.')) : undefined,
+        installments: installments ? parseInt(installments, 10) : undefined,
+        dueDate: dueDate ? parseInt(dueDate, 10) : undefined,
         createdAt: editingId ? (debts.find(d => d.id === editingId)?.createdAt || Date.now()) : Date.now()
       };
-      
-      if (interestRate) debtData.interestRate = parseFloat(interestRate.replace(',', '.'));
-      if (installments) debtData.installments = parseInt(installments, 10);
-      if (dueDate) debtData.dueDate = parseInt(dueDate, 10);
 
       await setDoc(debtRef, debtData, { merge: true });
       resetForm();
@@ -210,7 +289,6 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta dívida?')) return;
     try {
       await deleteDoc(doc(db, 'debts', id));
     } catch (error) {
@@ -404,13 +482,20 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
                     </div>
                     <h4 className="font-bold text-gray-900 dark:text-white truncate pr-4">{debt.name}</h4>
                   </div>
-                  <div className="flex items-center gap-1 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => generateAIProjection(debt)}
                       className="p-1.5 text-gray-400 hover:text-emerald-500 transition-colors"
                       title="Análise com IA"
                     >
                       <BrainCircuit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => openHistoryModal(debt)}
+                      className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                      title="Histórico de Pagamentos"
+                    >
+                      <History className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => { setPaymentModalDebt(debt); setPaymentAmount(''); }}
@@ -492,7 +577,7 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
                 </div>
               ) : (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  {(aiProjection || '').split('\n').map((line, i) => (
+                  {aiProjection.split('\n').map((line, i) => (
                     <p key={i} className="mb-2 text-gray-700 dark:text-gray-300 leading-relaxed">{line}</p>
                   ))}
                 </div>
@@ -503,7 +588,102 @@ export function DividasTab({ userId, userSettings }: DividasTabProps) {
       )}
 
       {/* Payment Modal */}
-      {paymentModalDebt && (
+      
+      {historyModalDebt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-[#1A1A1D] w-full max-w-md rounded-3xl shadow-xl p-6 border border-gray-100 dark:border-white/10 flex flex-col max-h-[80vh]">
+            <div className="flex justify-between items-center mb-6 shrink-0">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <History className="w-5 h-5 text-blue-500" />
+                Histórico de Pagamentos
+              </h3>
+              <button onClick={() => setHistoryModalDebt(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+              {isLoadingHistory ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : debtPayments.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">Nenhum pagamento registrado para esta dívida.</p>
+              ) : (
+                debtPayments.map(payment => (
+                  <div key={payment.id} className="bg-gray-50 dark:bg-[#0A0A0B] p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                    {editingPaymentId === payment.id ? (
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
+                          <input
+                            type="text"
+                            value={editingPaymentAmount}
+                            onChange={(e) => {
+                               const val = e.target.value.replace(/[^0-9,.]/g, '');
+                               setEditingPaymentAmount(val);
+                            }}
+                            className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-3 py-2 text-sm font-mono outline-none focus:border-blue-500 transition-colors"
+                          />
+                        </div>
+                        <button
+                          onClick={() => saveEditedPayment(payment)}
+                          disabled={isProcessingHistory}
+                          className="p-2 text-white bg-green-500 hover:bg-green-600 rounded-xl transition-colors disabled:opacity-50"
+                          title="Salvar Alteração"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingPaymentId(null)}
+                          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded-xl transition-colors"
+                          title="Cancelar"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">R$ {payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          <p className="text-xs text-gray-500">{new Date(payment.date).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingPaymentId(payment.id);
+                              setEditingPaymentAmount(payment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+                            }}
+                            disabled={isProcessingHistory}
+                            className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors disabled:opacity-50"
+                            title="Editar Pagamento"
+                          >
+                            <PencilLine className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (true) {
+                                undoPayment(payment);
+                              }
+                            }}
+                            disabled={isProcessingHistory}
+                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            title="Desfazer Pagamento (Excluir)"
+                          >
+                            <Undo2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+{paymentModalDebt && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-[#1A1A1D] w-full max-w-sm rounded-3xl shadow-xl p-6 border border-gray-100 dark:border-white/10">
             <div className="flex justify-between items-center mb-6">

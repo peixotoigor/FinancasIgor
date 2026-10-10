@@ -24,6 +24,8 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
   const [availableModels, setAvailableModels] = useState<string[] | null>(null);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [csvMessage, setCsvMessage] = useState<string | null>(null);
+  const [modelError, setModelError] = useState<string | null>(null);
 
   // Auto-save logic
   useEffect(() => {
@@ -79,7 +81,7 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
       }
     } catch (e) {
       console.error("Falha ao buscar modelos OpenRouter:", e);
-      alert(`Não foi possível carregar os modelos.`);
+      setModelError('Não foi possível carregar os modelos.');
     } finally {
       setIsLoadingModels(false);
     }
@@ -181,82 +183,85 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
                  imported++;
               }
           }
-          alert(`${imported} transações importadas com sucesso!`);
+          setCsvMessage(`✅ ${imported} transação(ões) importada(s) com sucesso!`);
           setCsvText('');
-      } catch (e) {
+      } catch (e: any) {
           console.error(typeof e === 'object' && e !== null && 'message' in e ? e.message : String(e));
-          alert('Erro ao importar CSV.');
+          setCsvMessage('❌ Erro ao importar CSV.');
       } finally {
           setIsImporting(false);
       }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl mx-auto space-y-8 pb-24 font-sans text-gray-900 dark:text-white">
        
        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b border-gray-100 dark:border-white/5 mb-6">
          <div>
-           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Configurações</h2>
-           <p className="text-gray-500 text-sm font-medium mt-1">Gerencie limites, provedores de IA e importações.</p>
+           <div className="flex items-center gap-2 mb-1">
+             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Parâmetros Globais</span>
+           </div>
+           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Integração & Alertas</h2>
+           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gerencie limites de consumo, provedores de IA e importações de dados.</p>
          </div>
          
-         <div className="flex items-center gap-2 text-sm font-medium fixed sm:static bottom-20 sm:bottom-0 right-4 sm:right-0 bg-white/90 sm:bg-transparent dark:bg-[#121214]/90 sm:dark:bg-transparent shadow-lg sm:shadow-none p-3 sm:p-0 rounded-full sm:rounded-none z-50 backdrop-blur-md">
-            {saveStatus === "saving" && <span className="text-orange-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span className="hidden sm:inline">Salvando...</span></span>}
-            {saveStatus === "saved" && <span className="text-emerald-500 flex items-center gap-2"><Check className="w-4 h-4" /> <span className="hidden sm:inline">Salvo automaticamente</span></span>}
-            {saveStatus === "error" && <span className="text-red-500 flex items-center gap-2"><Check className="w-4 h-4" /> <span className="hidden sm:inline">Erro ao salvar</span></span>}
-            {saveStatus === "idle" && <span className="text-gray-400 dark:text-gray-500 flex items-center gap-2"><Check className="w-4 h-4 opacity-50" /> <span className="hidden sm:inline">Sincronizado</span></span>}
+         <div className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300">
+            {saveStatus === "saving" && <span className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</span>}
+            {saveStatus === "saved" && <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"><Check className="w-3.5 h-3.5" /> Salvo automaticamente</span>}
+            {saveStatus === "error" && <span className="flex items-center gap-2 text-rose-500">Erro ao salvar</span>}
+            {saveStatus === "idle" && <span className="flex items-center gap-2"><Check className="w-3.5 h-3.5" /> Sincronizado</span>}
          </div>
        </div>
 
        {/* Orçamento e Alertas */}
-       <section className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 shadow-sm rounded-2xl p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-             <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center">
+       <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+             <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
                 <BellRing className="w-5 h-5" />
              </div>
              <div>
-               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Orçamento e Alertas</h3>
-               <p className="text-xs text-gray-500">Defina limites para receber alertas no Telegram.</p>
+               <h3 className="text-base font-bold text-gray-900 dark:text-white">Orçamento e Alertas</h3>
+               <p className="text-xs text-gray-500 dark:text-gray-400">Defina tetos operacionais para notificações no Telegram.</p>
              </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6">
              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 block mb-2">Limite Global Mensal</label>
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-2">Limite Global Mensal</label>
                 <div className="flex items-center gap-3 max-w-sm">
-                   <div className="relative flex-1 group">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium z-10">R$</span>
+                   <div className="relative flex-1 flex items-center bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
+                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500 pl-3.5">R$</span>
                       <input 
                          type="number" 
                          placeholder="0,00"
                          value={overallLimit}
                          onChange={e => setOverallLimit(e.target.value)}
-                         className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 w-full pl-12 pr-4 py-3 rounded-xl text-gray-900 dark:text-white font-semibold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                         className="bg-transparent w-full pl-2 pr-3.5 py-2.5 text-gray-900 dark:text-white font-semibold text-sm outline-none"
                       />
                    </div>
                 </div>
              </div>
 
              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 block mb-3">Limites por Categoria</label>
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 block mb-3">Limites por Categoria</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                    {userSettings.categories?.map(cat => (
-                      <div key={cat} className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-xl p-3 flex flex-col gap-2 relative group focus-within:border-orange-500/50 transition-colors">
-                         <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 truncate pr-2 uppercase" title={cat}>{cat}</span>
-                         <div className="relative flex items-center">
-                            <span className="text-gray-400 text-xs font-medium absolute left-2">R$</span>
+                      <div key={cat} className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200/80 dark:border-white/5 rounded-2xl p-3 flex flex-col gap-2">
+                         <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate" title={cat}>{cat}</span>
+                         <div className="relative flex items-center bg-white dark:bg-[#18181B] border border-gray-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 focus-within:border-emerald-500 transition-colors">
+                            <span className="text-[11px] text-gray-400 font-medium">R$</span>
                             <input 
                                type="number" 
                                placeholder="-"
                                value={catLimits[cat] || ''}
                                onChange={e => setCatLimits(prev => ({...prev, [cat]: e.target.value}))}
-                               className="bg-transparent text-sm w-full font-bold text-gray-900 dark:text-white outline-none pl-7 py-1 text-right"
+                               className="bg-transparent text-sm w-full font-semibold text-gray-900 dark:text-white outline-none pl-1.5 text-right"
                             />
                          </div>
                       </div>
                    ))}
                    {(!userSettings.categories || userSettings.categories.length === 0) && (
-                      <p className="text-sm font-medium text-gray-500 col-span-full">Nenhuma categoria cadastrada.</p>
+                      <p className="text-xs text-gray-400 col-span-full">Nenhuma categoria cadastrada.</p>
                    )}
                 </div>
              </div>
@@ -264,54 +269,60 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
        </section>
 
        {/* Assistente & IA */}
-       <section className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 shadow-sm rounded-2xl p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-8">
-             <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
+       <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+             <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
              </div>
              <div>
-               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Assistente Inteligente & IA</h3>
-               <p className="text-xs text-gray-500">Integração do Telegram e processamento de linguagem.</p>
+               <h3 className="text-base font-bold text-gray-900 dark:text-white">Assistente Inteligente & IA</h3>
+               <p className="text-xs text-gray-500 dark:text-gray-400">Integração do Telegram e auditoria preditiva.</p>
              </div>
           </div>
 
-          <div className="space-y-10">
+          <div className="space-y-6">
              
              {/* Model Provider Config */}
              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-4">Provedor de IA</h4>
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                   <label className={`flex-1 flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors ${aiProvider === 'gemini' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-500/30'}`}>
-                      <input type="radio" value="gemini" checked={aiProvider === 'gemini'} onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'openrouter')} className="accent-blue-500 w-4 h-4" />
-                      <span className="font-bold text-sm text-gray-900 dark:text-white mt-0.5">Google Gemini API</span>
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">Provedor de IA</h4>
+                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                   <label className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${aiProvider === 'gemini' ? 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-500/10 text-gray-900 dark:text-white' : 'border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] text-gray-700 dark:text-gray-300 hover:border-gray-300'}`}>
+                      <input type="radio" value="gemini" checked={aiProvider === 'gemini'} onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'openrouter')} className="w-4 h-4 accent-emerald-500 cursor-pointer" />
+                      <div>
+                        <span className="font-semibold text-sm block">Google Gemini API</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Padrão inteligente de alta performance</span>
+                      </div>
                    </label>
-                   <label className={`flex-1 flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-colors ${aiProvider === 'openrouter' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-500/30'}`}>
-                      <input type="radio" value="openrouter" checked={aiProvider === 'openrouter'} onChange={(e) => setAiProvider(e.target.value as 'openrouter' | 'gemini')} className="accent-blue-500 w-4 h-4" />
-                      <span className="font-bold text-sm text-gray-900 dark:text-white mt-0.5">OpenRouter</span>
+                   <label className={`flex-1 flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${aiProvider === 'openrouter' ? 'border-purple-500/50 bg-purple-50/50 dark:bg-purple-500/10 text-gray-900 dark:text-white' : 'border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] text-gray-700 dark:text-gray-300 hover:border-gray-300'}`}>
+                      <input type="radio" value="openrouter" checked={aiProvider === 'openrouter'} onChange={(e) => setAiProvider(e.target.value as 'openrouter' | 'gemini')} className="w-4 h-4 accent-purple-500 cursor-pointer" />
+                      <div>
+                        <span className="font-semibold text-sm block">OpenRouter API</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Modelos flexíveis como Claude, GPT-4, etc.</span>
+                      </div>
                    </label>
                 </div>
 
                 {aiProvider === 'openrouter' && (
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 mt-4">
-                      <div className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl p-4">
-                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 block">OpenRouter API Key</label>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-2xl p-4">
+                         <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">OpenRouter API Key</label>
                          <input 
                             type="password" 
                             value={openRouterApiKey}
                             onChange={e => setOpenRouterApiKey(e.target.value)}
                             placeholder="sk-or-v1-..."
-                            className="bg-transparent border-none w-full text-sm font-mono text-gray-900 dark:text-white outline-none"
+                            className="bg-white dark:bg-[#18181B] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 w-full text-xs font-mono text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors"
                          />
                       </div>
-                      <div className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl p-4 relative">
+                      <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-2xl p-4 relative">
                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Modelo OpenRouter</label>
+                            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Modelo OpenRouter</label>
                             <button 
                                onClick={fetchOpenRouterModels}
                                disabled={isLoadingModels}
-                               className="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-600 disabled:opacity-50 transition-colors"
+                               className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline disabled:opacity-50 cursor-pointer"
                             >
-                               {isLoadingModels ? 'Buscando...' : 'Carregar'}
+                               {isLoadingModels ? 'Buscando...' : 'Carregar Modelos'}
                             </button>
                          </div>
                          <input 
@@ -321,11 +332,11 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
                             onFocus={() => setIsModelDropdownOpen(true)}
                             onBlur={() => setTimeout(() => setIsModelDropdownOpen(false), 200)}
                             placeholder="openai/gpt-4o-mini"
-                            className="bg-transparent border-none w-full text-sm font-mono text-gray-900 dark:text-white outline-none"
+                            className="bg-white dark:bg-[#18181B] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 w-full text-xs font-mono text-gray-900 dark:text-white outline-none focus:border-purple-500 transition-colors"
                          />
                          
                          {isModelDropdownOpen && availableModels && availableModels.length > 0 && (
-                            <div className="absolute z-20 left-0 right-0 top-full mt-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                            <div className="absolute z-20 left-4 right-4 top-full mt-2 bg-white dark:bg-[#18181B] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto">
                                {availableModels
                                   .filter(model => model.toLowerCase().includes(openRouterModel.toLowerCase()))
                                   .map(model => (
@@ -335,7 +346,7 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
                                         setOpenRouterModel(model);
                                         setIsModelDropdownOpen(false);
                                      }}
-                                     className="px-4 py-3  text-sm cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors"
+                                     className="px-4 py-2.5 text-xs font-mono cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-800 dark:text-gray-200"
                                   >
                                      {model}
                                   </div>
@@ -348,35 +359,35 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
              </div>
 
              {/* Telegram Config */}
-             <div className="pt-8 border-t border-gray-100 dark:border-white/5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-4">Integração Externa (Telegram / API)</h4>
+             <div className="pt-6 border-t border-gray-100 dark:border-white/5">
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Integração Externa &bull; Telegram / API</h4>
                 
                 <div className="flex flex-col md:flex-row gap-6">
                    <div className="flex-1 space-y-4">
                       <div>
-                         <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1 block">Seu Token de Usuário</label>
+                         <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">Seu Token de Usuário</label>
                          <div className="flex items-center gap-2 w-full max-w-sm">
-                            <input readOnly value={user.uid} className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 px-3 py-2.5 rounded-lg w-full text-gray-600 dark:text-gray-400 font-mono text-xs outline-none" />
-                            <button onClick={copyToken} className="shrink-0 flex items-center justify-center p-3 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg transition-colors border border-gray-200 dark:border-white/10">
+                            <input readOnly value={user.uid} className="bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 w-full text-gray-700 dark:text-gray-300 font-mono text-xs outline-none" />
+                            <button onClick={copyToken} className="shrink-0 flex items-center justify-center p-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 transition-colors cursor-pointer" title="Copiar Token">
                                {copiedToken ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                             </button>
                          </div>
                       </div>
 
-                      <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-xl p-4 text-sm text-gray-600 dark:text-gray-400">
-                         <ol className="list-decimal pl-4 space-y-2">
-                             <li>Crie um Bot no <a href="https://t.me/BotFather" target="_blank" className="text-blue-500 hover:underline">@BotFather</a></li>
+                      <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-2xl p-4 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                         <ol className="list-decimal pl-4 space-y-1.5">
+                             <li>Crie um Bot no <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold">@BotFather</a></li>
                              <li>Vá em <b>Settings &rarr; API Keys & Secrets</b> do AI Studio</li>
-                             <li>Adicione a variável <code className="bg-gray-200 dark:bg-white/10 px-1 py-0.5 rounded font-mono text-[10px]">TELEGRAM_BOT_TOKEN</code></li>
+                             <li>Adicione a variável <code className="bg-gray-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-gray-900 dark:text-white">TELEGRAM_BOT_TOKEN</code></li>
                              <li>Recarregue a página!</li>
                          </ol>
                       </div>
                    </div>
 
                    <div className="flex-1">
-                       <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2 block">Requisição via API Genérica</label>
-                       <div className="bg-gray-900 rounded-xl p-4 overflow-x-auto shadow-inner border border-gray-800">
-                           <pre className="text-xs font-mono text-gray-300 leading-relaxed">
+                       <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">Requisição via API Genérica</label>
+                       <div className="bg-gray-900 text-gray-200 p-4 rounded-2xl border border-gray-800 overflow-x-auto">
+                           <pre className="text-xs font-mono leading-relaxed">
 {`POST /api/telegram-webhook
 Content-Type: application/json
 
@@ -394,23 +405,23 @@ Content-Type: application/json
        </section>
 
        {/* CSV Import */}
-       <section className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 shadow-sm rounded-2xl p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-             <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center">
+       <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
+             <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                 <Database className="w-5 h-5" />
              </div>
              <div>
-               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Fonte de Dados</h3>
-               <p className="text-xs text-gray-500">Importação em lote de registros via CSV.</p>
+               <h3 className="text-base font-bold text-gray-900 dark:text-white">Fonte de Dados</h3>
+               <p className="text-xs text-gray-500 dark:text-gray-400">Importação em lote de registros via CSV.</p>
              </div>
           </div>
 
           <div className="space-y-4">
-             <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-xl p-4">
-               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2 flex items-center gap-2">Formato das Colunas (Ordem Estrita):</p>
+             <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/5 rounded-2xl p-4">
+               <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-2">Formato das Colunas (ordem estrita):</p>
                <div className="flex flex-wrap gap-1.5 mt-1">
                  {["Mês", "Descrição", "Data", "Valor", "Dia", "Mês Num.", "Ano", "Categoria", "Cartão/Conta", "Natureza Pag."].map(col => (
-                   <span key={col} className="text-[10px] bg-white dark:bg-black/30 border border-gray-200 dark:border-white/10 px-2 py-1 rounded text-gray-600 dark:text-gray-400 font-mono inline-block shadow-sm">{col}</span>
+                   <span key={col} className="text-[11px] font-medium bg-gray-100 dark:bg-white/5 px-2.5 py-1 rounded-lg text-gray-700 dark:text-gray-300">{col}</span>
                  ))}
                </div>
              </div>
@@ -419,17 +430,18 @@ Content-Type: application/json
                 value={csvText}
                 onChange={e => setCsvText(e.target.value)}
                 placeholder="12/2026, Uber Viagem, 12/12/2026, 25.00..."
-                className="w-full h-32 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 p-4 rounded-xl text-gray-900 dark:text-gray-300 text-sm font-mono focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-inner custom-scrollbar"
+                className="w-full h-32 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-gray-900 dark:text-white text-xs font-mono outline-none placeholder:text-gray-400 focus:border-blue-500 transition-colors"
                 disabled={isImporting}
              ></textarea>
              
-             <div className="flex justify-end pt-2">
+             {csvMessage && <div className="p-3.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-medium text-gray-900 dark:text-white">{csvMessage}</div>}
+              <div className="flex justify-end pt-2">
                 <button 
                    onClick={handleImportCSV} 
                    disabled={isImporting || !csvText.trim()}
-                   className="bg-gray-900 dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm shadow-gray-900/10 dark:shadow-white/10 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                   className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 px-6 py-2.5 rounded-xl font-medium text-xs tracking-wider transition-colors flex items-center gap-2 disabled:opacity-40 cursor-pointer shadow-sm"
                 >
-                   {isImporting ? <div className="w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin"></div> : <Upload className="w-4 h-4" />} 
+                   {isImporting ? <div className="w-3.5 h-3.5 border-2 border-current border-r-transparent animate-spin rounded-full"></div> : <Upload className="w-3.5 h-3.5" />} 
                    {isImporting ? 'Processando...' : 'Importar Lote'}
                 </button>
              </div>

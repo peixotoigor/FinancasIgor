@@ -38,7 +38,8 @@ service cloud.firestore {
         && (data.get('groupId', '') is string && data.get('groupId', '').size() <= 128)
         && (data.get('telegramMsgId', 0) is number)
         && (data.get('reserveModifications', {}) is map)
-        && (data.get('reserveModificationsMonth', '') is string);
+        && (data.get('reserveModificationsMonth', '') is string)
+        && (data.get('linkedDebtId', '') is string);
     }
 
     match /user_settings/{docId} {
@@ -142,6 +143,43 @@ service cloud.firestore {
       
       allow delete: if isSignedIn()
         && isValidId(debtId)
+        && existing().userId == request.auth.uid;
+        
+      allow get: if true;
+      allow list: if true;
+    }
+
+    function isValidShoppingItem(data) {
+      return data.keys().hasAll(['userId', 'description', 'targetBudget', 'status', 'createdAt'])
+        && data.userId is string && (request.auth == null || data.userId == request.auth.uid)
+        && data.description is string && data.description.size() <= 200
+        && data.targetBudget is number
+        && data.status is string && data.status in ['planned', 'purchased', 'cancelled']
+        && (data.get('averagePrice', 0) is number)
+        && (data.get('minPrice', 0) is number)
+        && (data.get('maxPrice', 0) is number)
+        && (data.get('sources', []) is list)
+        && (data.get('notes', '') is string && data.get('notes', '').size() <= 500)
+        && (data.get('purchasedAmount', 0) is number)
+        && (data.get('priority', 'medium') is string)
+        && (data.get('searchedAt', 0) is number)
+        && (data.get('category', '') is string)
+        && data.createdAt is number;
+    }
+
+    match /shopping_items/{itemId} {
+      allow create: if true
+        && isValidId(itemId)
+        && isValidShoppingItem(incoming());
+      
+      allow update: if true
+        && isValidId(itemId)
+        && (request.auth == null || existing().userId == request.auth.uid)
+        && isValidShoppingItem(incoming())
+        && incoming().userId == existing().userId;
+      
+      allow delete: if isSignedIn()
+        && isValidId(itemId)
         && existing().userId == request.auth.uid;
         
       allow get: if true;

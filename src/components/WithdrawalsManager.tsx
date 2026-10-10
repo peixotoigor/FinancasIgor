@@ -70,57 +70,57 @@ export function WithdrawalsManager({ label, withdrawals, onChange, accValue, ban
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full h-full">
-        <div className="flex justify-between items-start w-full">
-            <div className="flex flex-col gap-1">
-               <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{label}</span>
+    <div className="flex flex-col gap-3 w-full h-full font-sans">
+        <div className="flex justify-between items-start w-full border-b border-gray-100 dark:border-white/5 pb-2">
+            <div className="flex flex-col gap-0.5">
+               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{label}</span>
                {accValue !== undefined && (
-                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                     Total Acumulado: {accValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                   <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                     Acumulado: {accValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                    </span>
                )}
             </div>
             <div className="flex flex-col items-end">
-               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Total no Mês</span>
-               <span className="text-xl font-black text-red-500/90 tracking-tight">
+               <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">No Mês</span>
+               <span className="text-sm font-bold font-mono text-gray-900 dark:text-white">
                     {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                </span>
             </div>
         </div>
         
-        <div className="flex flex-col gap-3 mt-1 bg-gray-50/50 dark:bg-white/[0.01] border border-gray-100 dark:border-white/5 rounded-xl p-4">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-between">
+        <div className="flex flex-col gap-2.5 bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-xl p-3">
+            <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 flex items-center justify-between">
                 {editingId ? 'Editar Retirada' : 'Adicionar Retirada'}
-                {editingId && <button onClick={() => { setEditingId(null); setDesc(''); setAmountStr(''); setBank(''); }} className="text-blue-500 hover:text-blue-600 transition-colors">Cancelar</button>}
+                {editingId && <button onClick={() => { setEditingId(null); setDesc(''); setAmountStr(''); setBank(''); }} className="text-indigo-500 hover:underline">Cancelar</button>}
             </span>
             
             <div className="flex flex-col gap-2">
                 <input 
                    type="text" 
-                   placeholder="Descrição da retirada (Ex: Lanche, Luz)" 
-                   className="w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-red-500/50 transition-colors h-10 shadow-sm"
+                   placeholder="Descrição da retirada (Ex: Manutenção)" 
+                   className="w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors h-8"
                    value={desc}
                    onChange={(e) => setDesc(e.target.value)}
                 />
                 
-                <div className="w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg px-3 flex items-center focus-within:border-red-500/50 transition-colors h-10 shadow-sm">
-                   <span className="text-red-500 text-xs font-black mr-2">R$</span>
+                <div className="w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg px-2.5 flex items-center h-8">
+                   <span className="text-gray-400 text-xs font-mono font-medium mr-1.5">R$</span>
                    <input 
                       type="text" 
-                      inputMode="decimal"
+                      inputMode="decimal" 
                       placeholder="0.00" 
-                      className="w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none h-full"
+                      className="w-full bg-transparent text-xs font-mono font-bold text-gray-900 dark:text-white outline-none h-full"
                       value={amountStr}
                       onChange={(e) => setAmountStr(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
                    />
                 </div>
                 
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-1.5 items-center">
                    <input 
                       type="text" 
-                      placeholder="De qual banco/conta?" 
-                      className="flex-1 min-w-0 bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-red-500/50 transition-colors h-10 shadow-sm"
+                      placeholder="Banco / Instituição" 
+                      className="flex-1 min-w-0 bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors h-8"
                       value={bank}
                       onChange={(e) => setBank(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
@@ -128,18 +128,19 @@ export function WithdrawalsManager({ label, withdrawals, onChange, accValue, ban
                    <button 
                      onClick={handleSave} 
                      disabled={!desc.trim() || !amountStr.trim() || !bank.trim()}
-                     className="w-10 h-10 flex-shrink-0 bg-red-500 text-white flex items-center justify-center rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:hover:bg-red-500 transition-colors shadow-sm cursor-pointer"
+                     className="h-8 px-2.5 flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-40 transition-colors cursor-pointer text-xs font-medium gap-1"
                    >
-                     {editingId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-5 h-5" />}
+                     {editingId ? <PencilLine className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                     <span>{editingId ? 'Salvar' : 'Adicionar'}</span>
                    </button>
                 </div>
                 
-                <div className="flex flex-wrap gap-1.5 mt-0.5">
+                <div className="flex flex-wrap gap-1 mt-0.5">
                    {['Nubank', 'C6', 'Inter', 'Itaú', 'XP'].map(b => (
                        <button 
                            key={b} 
                            onClick={() => setBank(b)}
-                           className={`text-[10px] font-bold uppercase tracking-wider border rounded px-2.5 py-1 transition-colors shadow-sm ${bank === b ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-red-500 hover:text-red-500 text-gray-500'}`}
+                           className={`text-[10px] font-medium px-2 py-0.5 rounded-md transition-colors ${bank === b ? 'bg-indigo-500 text-white' : 'bg-gray-200/60 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'}`}
                        >
                            {b}
                        </button>

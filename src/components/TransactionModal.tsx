@@ -206,41 +206,83 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#121214] border border-gray-300 dark:border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-6 relative max-h-[95vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-white transition">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm font-sans">
+      <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/10 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative max-h-[95vh] overflow-y-auto text-gray-900 dark:text-white">
+        <button 
+          onClick={onClose} 
+          className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+        >
            <X className="w-5 h-5" />
         </button>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{initialData?.id ? 'Editar Transação' : 'Nova Transação'}</h2>
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            {initialData?.id ? 'Editar Transação' : 'Nova Transação'}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Preencha os dados da movimentação financeira
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-           <div className="flex gap-2 p-1 bg-gray-50 dark:bg-[#0A0A0B] rounded-lg border border-gray-200 dark:border-white/5">
-              <button type="button" onClick={() => { setType('expense'); setCategory(userSettings?.categories?.[0] || ''); }} className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition ${type === 'expense' ? 'bg-white dark:bg-[#18181B] text-red-400 border border-gray-300 dark:border-white/10 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`}>Despesa</button>
-              <button type="button" onClick={() => { setType('income'); setCategory((userSettings?.incomeCategories || ['Salário', 'Investimentos', 'Outros'])[0] || ''); }} className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition ${type === 'income' ? 'bg-white dark:bg-[#18181B] text-emerald-400 border border-gray-300 dark:border-white/10 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-white'}`}>Receita</button>
+           <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-white/5 rounded-2xl">
+              <button 
+                type="button" 
+                onClick={() => { setType('expense'); setCategory(userSettings?.categories?.[0] || ''); }} 
+                className={`py-2.5 text-xs font-semibold rounded-xl transition-all ${type === 'expense' ? 'bg-rose-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                Despesa
+              </button>
+              <button 
+                type="button" 
+                onClick={() => { setType('income'); setCategory((userSettings?.incomeCategories || ['Salário', 'Investimentos', 'Outros'])[0] || ''); }} 
+                className={`py-2.5 text-xs font-semibold rounded-xl transition-all ${type === 'income' ? 'bg-emerald-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                Receita
+              </button>
            </div>
            
-           <div className="space-y-1">
-              <label className="text-[10px] text-gray-400 uppercase font-semibold">Descrição</label>
-              <input required value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition placeholder:text-gray-600" placeholder="Ex: Mercado" />
+           <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Descrição</label>
+              <input 
+                required 
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-gray-400" 
+                placeholder="Ex: Supermercado" 
+              />
            </div>
 
            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 uppercase font-semibold">Valor (R$)</label>
-                  <input required value={amount} onChange={e => setAmount(e.target.value)} type="number" step="0.01" className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition" placeholder="0.00" />
+               <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Valor (R$)</label>
+                  <input 
+                    required 
+                    value={amount} 
+                    onChange={e => setAmount(e.target.value)} 
+                    type="number" 
+                    step="0.01" 
+                    className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm font-mono font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all" 
+                    placeholder="0.00" 
+                  />
                </div>
-               <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 uppercase font-semibold">Data</label>
-                  <input required value={date} onChange={e => setDate(e.target.value)} type="date" className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition dark:[&::-webkit-calendar-picker-indicator]:invert" />
+               <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Data</label>
+                  <input 
+                    required 
+                    value={date} 
+                    onChange={e => setDate(e.target.value)} 
+                    type="date" 
+                    className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all" 
+                  />
                </div>
            </div>
 
            <div className={`grid ${type === 'income' ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
-              <div className="space-y-1 relative">
+              <div className="space-y-1.5 relative">
                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] text-gray-400 uppercase font-semibold">Categoria</label>
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Categoria</label>
                     <div className="relative group">
-                       <button type="button" className="text-gray-500 hover:text-gray-900 dark:text-white transition cursor-pointer p-1" title="Opções"><MoreVertical className="w-3.5 h-3.5" /></button>
-                       <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181B] border border-gray-300 dark:border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] w-36 flex flex-col overflow-hidden text-left origin-top-right">
+                       <button type="button" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded transition-colors" title="Opções"><MoreVertical className="w-3.5 h-3.5" /></button>
+                       <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] w-40 flex flex-col overflow-hidden text-left origin-top-right">
                           <button type="button" onClick={() => {
                              const cat = window.prompt('Nova Categoria:');
                              const targetList = type === 'expense' ? userSettings?.categories : (userSettings?.incomeCategories || ['Salário', 'Investimentos', 'Outros']);
@@ -252,7 +294,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
                                     updateDoc(doc(db, 'user_settings', userId), { incomeCategories: arrayUnion(cat) });
                                  }
                              }
-                          }} className="text-[11px] p-2 hover:bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-emerald-400 text-left flex items-center gap-2 w-full"><Plus className="w-3 h-3" /> Adicionar</button>
+                          }} className="text-xs p-2.5 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 text-left flex items-center gap-2 w-full"><Plus className="w-3.5 h-3.5" /> Adicionar</button>
                           <button type="button" onClick={() => {
                              if (!category) return;
                              const newCat = window.prompt(`Renomear ${category} para:`, category);
@@ -266,24 +308,22 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
                                     updateDoc(doc(db, 'user_settings', userId), { incomeCategories: newList });
                                  }
                              }
-                          }} className="text-[11px] p-2 hover:bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-white border-y border-gray-200 dark:border-white/5 text-left flex items-center gap-2 w-full"><Pencil className="w-3 h-3" /> Editar Seleção</button>
+                          }} className="text-xs p-2.5 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 border-y border-gray-100 dark:border-white/5 text-left flex items-center gap-2 w-full"><Pencil className="w-3.5 h-3.5" /> Editar</button>
                           <button type="button" onClick={() => {
                              if (!category) return;
-                             if (window.confirm(`Remover categoria ${category}?`)) {
-                                 const targetList = type === 'expense' ? userSettings?.categories : (userSettings?.incomeCategories || ['Salário', 'Investimentos', 'Outros']);
-                                 if (type === 'expense') {
-                                    updateDoc(doc(db, 'user_settings', userId), { categories: arrayRemove(category) });
-                                    setCategory((userSettings?.categories || []).filter(c => c !== category)[0] || '');
-                                 } else {
-                                    updateDoc(doc(db, 'user_settings', userId), { incomeCategories: arrayRemove(category) });
-                                    setCategory((userSettings?.incomeCategories || ['Salário']).filter(c => c !== category)[0] || '');
-                                 }
+                             const targetList = type === 'expense' ? userSettings?.categories : (userSettings?.incomeCategories || ['Salário', 'Investimentos', 'Outros']);
+                             if (type === 'expense') {
+                                updateDoc(doc(db, 'user_settings', userId), { categories: arrayRemove(category) });
+                                setCategory((userSettings?.categories || []).filter(c => c !== category)[0] || '');
+                             } else {
+                                updateDoc(doc(db, 'user_settings', userId), { incomeCategories: arrayRemove(category) });
+                                setCategory((userSettings?.incomeCategories || ['Salário']).filter(c => c !== category)[0] || '');
                              }
-                          }} className="text-[11px] p-2 hover:bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-red-400 text-left flex items-center gap-2 w-full"><Trash2 className="w-3 h-3" /> Remover Seleção</button>
+                          }} className="text-xs p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500 text-left flex items-center gap-2 w-full"><Trash2 className="w-3.5 h-3.5" /> Remover</button>
                        </div>
                     </div>
                  </div>
-                 <select required value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition truncate">
+                 <select required value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all truncate cursor-pointer">
                     {type === 'expense' ? (
                        <>
                          {!userSettings?.categories?.length && <option value="" disabled>Adicione Categorias</option>}
@@ -300,18 +340,18 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
                  </select>
               </div>
               {type === 'expense' && (
-                 <div className="space-y-1">
-                    <label className="text-[10px] text-gray-400 uppercase font-semibold">Conta (Banco)</label>
-                    <input value={account} onChange={e => setAccount(e.target.value)} placeholder="Ex: Nubank" className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition placeholder:text-gray-600" />
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Conta (Banco)</label>
+                    <input value={account} onChange={e => setAccount(e.target.value)} placeholder="Ex: Nubank" className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-gray-400" />
                  </div>
               )}
            </div>
 
            {type === 'expense' && (
              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                   <label className="text-[10px] text-gray-400 uppercase font-semibold">Método</label>
-                   <select required value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition">
+                <div className="space-y-1.5">
+                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Método</label>
+                   <select required value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
                       <option value="Crédito">Crédito</option>
                       <option value="Pix">Pix</option>
                       <option value="Débito">Débito</option>
@@ -319,19 +359,19 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
                    </select>
                 </div>
                 {(paymentMethod === 'Crédito' || paymentMethod === 'Débito') && (
-                    <div className="space-y-1">
-                       <div className="flex justify-between items-center">
-                          <label className="text-[10px] text-gray-400 uppercase font-semibold">Cartão</label>
+                    <div className="space-y-1.5">
+                       <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Cartão</label>
                           <div className="relative group">
-                             <button type="button" className="text-gray-500 hover:text-gray-900 dark:text-white transition cursor-pointer p-1" title="Opções"><MoreVertical className="w-3.5 h-3.5" /></button>
-                             <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181B] border border-gray-300 dark:border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] w-36 flex flex-col overflow-hidden text-left origin-top-right">
+                             <button type="button" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded transition-colors" title="Opções"><MoreVertical className="w-3.5 h-3.5" /></button>
+                             <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] w-40 flex flex-col overflow-hidden text-left origin-top-right">
                                 <button type="button" onClick={() => {
                                    const c = window.prompt('Novo Cartão:');
                                    if (c && (!userSettings?.cards || !userSettings.cards.includes(c))) {
                                        setCard(c);
                                        updateDoc(doc(db, 'user_settings', userId), { cards: arrayUnion(c) });
                                    }
-                                }} className="text-[11px] p-2 hover:bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-emerald-400 text-left flex items-center gap-2 w-full"><Plus className="w-3 h-3" /> Adicionar</button>
+                                }} className="text-xs p-2.5 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 text-left flex items-center gap-2 w-full"><Plus className="w-3.5 h-3.5" /> Adicionar</button>
                                 <button type="button" onClick={() => {
                                    if (!card) return;
                                    const newC = window.prompt(`Renomear ${card} para:`, card);
@@ -340,18 +380,16 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
                                        const newCards = userSettings.cards.map(x => x === card ? newC : x);
                                        updateDoc(doc(db, 'user_settings', userId), { cards: newCards });
                                    }
-                                }} className="text-[11px] p-2 hover:bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-white border-y border-gray-200 dark:border-white/5 text-left flex items-center gap-2 w-full"><Pencil className="w-3 h-3" /> Editar Seleção</button>
+                                }} className="text-xs p-2.5 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 border-y border-gray-100 dark:border-white/5 text-left flex items-center gap-2 w-full"><Pencil className="w-3.5 h-3.5" /> Editar</button>
                                 <button type="button" onClick={() => {
                                    if (!card) return;
-                                   if (window.confirm(`Remover cartão ${card}?`)) {
-                                       updateDoc(doc(db, 'user_settings', userId), { cards: arrayRemove(card) });
-                                       setCard(userSettings.cards.filter(c => c !== card)[0] || '');
-                                   }
-                                }} className="text-[11px] p-2 hover:bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-red-400 text-left flex items-center gap-2 w-full"><Trash2 className="w-3 h-3" /> Remover Seleção</button>
+                                   updateDoc(doc(db, 'user_settings', userId), { cards: arrayRemove(card) });
+                                   setCard(userSettings.cards.filter(c => c !== card)[0] || '');
+                                }} className="text-xs p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500 text-left flex items-center gap-2 w-full"><Trash2 className="w-3.5 h-3.5" /> Remover</button>
                              </div>
                           </div>
                        </div>
-                       <select value={card} onChange={e => setCard(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition">
+                       <select value={card} onChange={e => setCard(e.target.value)} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
                            {!userSettings?.cards?.length && <option value="" disabled>Adicione Cartões</option>}
                            {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
                        </select>
@@ -361,15 +399,15 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
            )}
 
            {(!initialData?.id) && !isRecurring && paymentMethod === 'Crédito' && type === 'expense' && (
-               <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 uppercase font-semibold">Parcelas</label>
-                  <input required type="number" min="1" max="48" value={installments} onChange={e => setInstallments(Number(e.target.value))} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-300 dark:border-white/10 rounded-lg p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500/50 transition" />
+               <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Parcelas</label>
+                  <input required type="number" min="1" max="48" value={installments} onChange={e => setInstallments(Number(e.target.value))} className="w-full bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all" />
                   
                   {installments > 1 && (new Date(date + 'T12:00:00').getMonth() + installments - 1 >= 12) && (
-                     <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg">
-                        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2 font-medium">
-                           <span className="w-4 h-4 flex items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/20">!</span>
-                           Atenção: As parcelas irão avançar para o próximo ano.
+                     <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                           <span>ℹ️</span>
+                           Atenção: As parcelas avançarão para o próximo ano.
                         </p>
                      </div>
                   )}
@@ -377,25 +415,37 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
            )}
 
            {type === 'expense' && (
-              <div className="space-y-1">
-                 <label className="text-[10px] text-gray-400 uppercase font-semibold">Status</label>
-                 <div className="flex gap-2">
-                   <button type="button" onClick={() => setStatus('paid')} className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition ${status === 'paid' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-white border border-transparent'}`}>Pago</button>
-                   <button type="button" onClick={() => setStatus('pending')} className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md transition ${status === 'pending' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/50 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:text-white border border-transparent'}`}>Pendente</button>
+              <div className="space-y-1.5">
+                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Status</label>
+                 <div className="grid grid-cols-2 gap-2">
+                   <button 
+                     type="button" 
+                     onClick={() => setStatus('paid')} 
+                     className={`py-2.5 text-xs font-semibold rounded-xl border transition-all ${status === 'paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold' : 'bg-gray-50 dark:bg-[#0A0A0B] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                   >
+                     Pago
+                   </button>
+                   <button 
+                     type="button" 
+                     onClick={() => setStatus('pending')} 
+                     className={`py-2.5 text-xs font-semibold rounded-xl border transition-all ${status === 'pending' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 font-bold' : 'bg-gray-50 dark:bg-[#0A0A0B] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                   >
+                     Pendente
+                   </button>
                  </div>
               </div>
            )}
 
            {!initialData?.id && type === 'expense' && (
-             <div className="space-y-2 p-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl">
-               <label className="flex items-center gap-2 cursor-pointer w-max">
-                 <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-4 h-4 text-indigo-500 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-white dark:bg-[#1A1A1D]" />
-                 <span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">Tornar Recorrente</span>
+             <div className="space-y-2 p-3.5 bg-gray-50 dark:bg-[#0A0A0B] border border-gray-200 dark:border-white/10 rounded-xl">
+               <label className="flex items-center gap-2.5 cursor-pointer w-max">
+                 <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-4 h-4 text-emerald-500 rounded border-gray-300 focus:ring-emerald-500" />
+                 <span className="text-xs font-medium text-gray-800 dark:text-gray-200">Tornar Recorrente</span>
                </label>
                {isRecurring && (
-                 <div className="pt-2 border-t border-indigo-200 dark:border-indigo-500/30">
-                   <label className="text-[10px] text-indigo-700 dark:text-indigo-400 uppercase font-semibold block mb-1">Periodicidade</label>
-                   <select value={recurrencePeriod} onChange={e => setRecurrencePeriod(e.target.value as any)} className="w-full bg-white dark:bg-[#0A0A0B] border border-indigo-200 dark:border-indigo-500/30 rounded-lg p-2 text-sm text-indigo-900 dark:text-indigo-200 focus:outline-none focus:border-indigo-500/50 transition">
+                 <div className="pt-2 border-t border-gray-200 dark:border-white/10">
+                   <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Periodicidade</label>
+                   <select value={recurrencePeriod} onChange={e => setRecurrencePeriod(e.target.value as any)} className="w-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs text-gray-800 dark:text-gray-200 focus:outline-none">
                      <option value="monthly">Mensal (todos os meses)</option>
                      <option value="yearly">Anual (este mês todo ano)</option>
                    </select>
@@ -404,8 +454,11 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
              </div>
            )}
 
-           <button disabled={isSubmitting} className="w-full mt-4 bg-emerald-500 text-black py-4 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition hover:shadow-emerald-500/40 disabled:opacity-50">
-             {isSubmitting ? 'Salvando...' : (initialData?.id ? 'Salvar Alterações' : 'Adicionar Transação')}
+           <button 
+             disabled={isSubmitting} 
+             className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl py-3.5 font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
+           >
+             {isSubmitting ? 'Salvando...' : (initialData?.id ? 'Salvar Alterações' : 'Salvar Registro')}
            </button>
         </form>
       </div>

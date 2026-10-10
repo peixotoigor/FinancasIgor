@@ -83,8 +83,8 @@ ${JSON.stringify(aggregatedData)}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
            prompt,
-           openRouterKey: userSettings?.openRouterApiKey,
-           openRouterModel: userSettings?.openRouterModel
+           openRouterKey: userSettings?.aiProvider === 'openrouter' ? userSettings?.openRouterApiKey : undefined,
+           openRouterModel: userSettings?.aiProvider === 'openrouter' ? userSettings?.openRouterModel : undefined
         })
       });
 
@@ -138,22 +138,25 @@ ${JSON.stringify(aggregatedData)}
     <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden">
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs">
+            <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-gray-900 dark:text-white">Análise e Previsão (IA)</h3>
-            <p className="text-xs text-gray-500">Tendências e dicas personalizadas</p>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white">Análise e Previsão Inteligente</h3>
+              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold px-1.5 py-0.5 rounded-full">IA</span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Tendências e projeções com base no seu histórico</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
            {!forecast && !isExpanded && (
-              <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-wider bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 px-2 py-1 rounded">Novo</span>
+              <span className="text-xs bg-emerald-500/10 text-emerald-500 font-medium px-2 py-0.5 rounded-full">Novo</span>
            )}
-           {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+           {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </div>
       </div>
 
@@ -161,27 +164,25 @@ ${JSON.stringify(aggregatedData)}
         <div className="p-4 pt-0 border-t border-gray-100 dark:border-white/5">
            {!forecast ? (
               <div className="py-8 flex flex-col items-center justify-center text-center">
-                 <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/5 rounded-full flex items-center justify-center mb-4">
-                    <Sparkles className="w-8 h-8 text-indigo-400" />
+                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-3">
+                    <Sparkles className="w-6 h-6" />
                  </div>
-                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">Gere sua primeira análise</h4>
-                 <p className="text-sm text-gray-500 max-w-sm mb-6">
-                    A IA vai analisar seus últimos 6 meses de gastos e identificar tendências, criando uma previsão para te ajudar a economizar.
+                 <h4 className="font-bold text-base text-gray-900 dark:text-white mb-1">Previsão Financeira com IA</h4>
+                 <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mb-4 leading-relaxed">
+                    Nossa IA analisa os padrões dos últimos 6 meses para sugerir previsões para suas principais categorias e dicas personalizadas.
                  </p>
                  <button 
                     onClick={generateForecast}
                     disabled={isGenerating}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium text-xs shadow-sm shadow-indigo-500/20 transition-all disabled:opacity-50"
                  >
-                    {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {isGenerating ? 'Analisando dados...' : 'Gerar Análise'}
+                    {isGenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    {isGenerating ? 'Analisando Histórico...' : 'Gerar Análise Agora'}
                  </button>
-                 {error && <p className="text-red-500 text-xs mt-4">{error}</p>}
+                 {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
               </div>
            ) : (
-              <div className="pt-4 space-y-6">
-                 {/* Sparklines / Charts could be inserted here later, for now we keep it clean */}
-                 
+              <div className="pt-4 space-y-4">
                  {/* Tendências (Curto) */}
                  <div className="bg-gray-50 dark:bg-[#0A0A0B] p-4 rounded-xl border border-gray-100 dark:border-white/5">
                     <div className="flex items-center gap-2 mb-2">
@@ -211,17 +212,17 @@ ${JSON.stringify(aggregatedData)}
                                         </h5>
                                         <p className="text-[11px] text-gray-500 mt-0.5">{f.details}</p>
                                      </div>
-                                     <span className="text-sm font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded-lg">{f.amount}</span>
+                                     <span className="text-sm font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-lg">{f.amount}</span>
                                   </div>
                                   
                                   {isCatExpanded && f.examples && f.examples.length > 0 && (
-                                     <div className="border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0A0A0B] p-3">
-                                        <h6 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Compras Baseadas no Histórico</h6>
+                                     <div className="border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01] p-3 text-xs">
+                                        <h6 className="font-semibold text-gray-600 dark:text-gray-400 mb-2 text-[11px]">Compras Consideradas:</h6>
                                         <ul className="space-y-1.5">
                                            {f.examples.map((ex: any, eIdx: number) => (
-                                              <li key={eIdx} className="flex justify-between items-center text-xs">
-                                                 <span className="text-gray-600 dark:text-gray-400 truncate pr-2">• {ex.desc}</span>
-                                                 <span className="font-medium text-gray-900 dark:text-gray-300 whitespace-nowrap">{ex.val}</span>
+                                              <li key={eIdx} className="flex justify-between items-center text-gray-500 dark:text-gray-400">
+                                                 <span className="truncate pr-2">&bull; {ex.desc}</span>
+                                                 <span className="font-medium text-gray-700 dark:text-gray-300">{ex.val}</span>
                                               </li>
                                            ))}
                                         </ul>
@@ -238,17 +239,22 @@ ${JSON.stringify(aggregatedData)}
                     )}
                  </div>
 
-
-                 <div className="bg-indigo-50 dark:bg-indigo-500/5 p-5 rounded-xl border border-indigo-100 dark:border-indigo-500/10">
-                    <div className="flex items-center gap-2 mb-4">
-                       <Lightbulb className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                       <h4 className="font-bold text-indigo-900 dark:text-indigo-200">Plano de Ação</h4>
+                 {/* Plano de Ação */}
+                 <div className="bg-indigo-50/50 dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10">
+                    <div className="flex items-center gap-2 mb-2">
+                       <Lightbulb className="w-4 h-4 text-indigo-500" />
+                       <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-400">Plano de Ação Sugerido</h4>
                     </div>
-                    <ul className="space-y-3">
-                       {forecast.actionPlan.map((plan: string, idx: number) => (
-                          <li key={idx} className="flex gap-3 text-sm text-indigo-800 dark:text-indigo-300">
-                             <span className="font-bold opacity-50 mt-0.5">{idx + 1}.</span>
-                             <span className="leading-relaxed">{plan}</span>
+                    <ul className="space-y-2">
+                       {(Array.isArray(forecast.actionPlan) 
+                          ? forecast.actionPlan 
+                          : typeof forecast.actionPlan === 'string' && forecast.actionPlan 
+                            ? [forecast.actionPlan] 
+                            : []
+                        ).map((plan: string, idx: number) => (
+                          <li key={idx} className="text-xs text-indigo-950 dark:text-gray-300 flex items-start gap-2 leading-relaxed">
+                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                             <span>{plan}</span>
                           </li>
                        ))}
                     </ul>
@@ -256,18 +262,18 @@ ${JSON.stringify(aggregatedData)}
 
                  <div className="flex items-center justify-between pt-2">
                     <span className="text-[10px] text-gray-400">
-                       Gerado em {new Date(forecast.generatedAt).toLocaleString('pt-BR')}
+                       Atualizado em {new Date(forecast.generatedAt).toLocaleDateString()} às {new Date(forecast.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <button 
                        onClick={generateForecast}
                        disabled={isGenerating}
-                       className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors disabled:opacity-50"
+                       className="text-xs text-indigo-500 hover:text-indigo-600 font-medium flex items-center gap-1"
                     >
-                       <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                       <RefreshCw className={`w-3 h-3 ${isGenerating ? 'animate-spin' : ''}`} />
                        Atualizar Análise
                     </button>
                  </div>
-                 {error && <p className="text-red-500 text-xs text-right mt-1">{error}</p>}
+                 {error && <p className="text-xs text-red-500 text-right mt-1">{error}</p>}
               </div>
            )}
         </div>

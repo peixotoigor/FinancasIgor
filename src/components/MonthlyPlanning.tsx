@@ -386,46 +386,46 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
   };
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden flex flex-col transition-all">
+    <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden font-sans">
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 lg:p-5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between p-4 lg:p-5 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-            <Calculator className="w-5 h-5 text-indigo-500" />
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs">
+            <Calculator className="w-4 h-4" />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-gray-900 dark:text-white tracking-tight">Planejamento do Mês</h3>
-            <p className="text-xs text-gray-500 font-medium">Previna seus gastos ({plannedExpenses.length + fixedExpenses.length} itens)</p>
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white">Planejamento do Mês</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Gastos fixos recorrentes e despesas previstas ({plannedExpenses.length + fixedExpenses.length} itens)</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {(plannedExpenses.length > 0 || fixedExpenses.length > 0) && (
-            <span className="text-sm font-mono tracking-tight font-medium text-gray-900 dark:text-white hidden sm:block">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hidden sm:block">
               {formatCurrency(totalBoth)}
             </span>
           )}
-          {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </div>
       </button>
 
       {isExpanded && (
-        <div className="p-4 lg:p-5 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0B0B0C]">
-          <div className="flex items-center gap-2 mb-6 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 p-3 rounded-xl">
-            <HelpCircle className="w-4 h-4 shrink-0" />
-            <p className="text-xs font-medium leading-relaxed">
-              Adicione os seus gastos fixos e despesas previstas para projetar seu saldo do mês. Isso te ajuda a visualizar o total de comprometimentos.
+        <div className="p-4 lg:p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-transparent">
+          <div className="flex items-center gap-2 mb-6 bg-indigo-50/50 dark:bg-indigo-500/5 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10">
+            <HelpCircle className="w-4 h-4 shrink-0 text-indigo-500" />
+            <p className="text-xs text-indigo-950 dark:text-gray-300 leading-relaxed">
+              Adicione despesas fixas recorrentes e gastos variáveis programados para auditar seus compromissos no ciclo.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Gastos Fixos */}
             <div className="flex flex-col gap-3">
                <div>
-                 <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 uppercase tracking-widest mb-1">Gastos Fixos</h4>
-                 <p className="text-[10px] text-gray-500">Contas recorrentes mensais (aluguel, internet, luz)</p>
+                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Gastos Fixos</h4>
+                 <p className="text-[11px] text-gray-400">Obrigações mensais (aluguel, condomínio, internet)</p>
                </div>
                
                <form onSubmit={handleAddFixed} className="flex flex-col gap-2 mb-2">
@@ -435,17 +435,17 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      placeholder="Ex: Aluguel"
                      value={fixedDesc}
                      onChange={(e) => setFixedDesc(e.target.value)}
-                     className="flex-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
+                     className="flex-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors"
                      required
                    />
                    <div className="relative w-[110px] sm:w-[130px]">
-                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
+                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
                      <input
                        type="text"
                        placeholder="0,00"
                        value={fixedAmt}
                        onChange={(e) => setFixedAmt(formatAmountInput(e.target.value))}
-                       className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2 py-2 text-sm font-mono outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
+                       className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2 py-2 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-indigo-500"
                        required
                      />
                    </div>
@@ -453,94 +453,94 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      <button
                        type="button"
                        onClick={cancelEditFixed}
-                       className="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
+                       className="bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
                        title="Cancelar Edição"
                      >
-                       <X className="w-5 h-5" />
+                       <X className="w-4 h-4" />
                      </button>
                    )}
                    <button
                      type="submit"
                      disabled={isSaving || !fixedDesc || !fixedAmt}
-                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 shrink-0"
                      title={editingFixedId ? "Salvar Edição" : "Adicionar Gasto Fixo"}
                    >
-                     {editingFixedId ? <PencilLine className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                     {editingFixedId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                    </button>
                  </div>
 
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                   <select value={fixedCategory} onChange={(e) => setFixedCategory(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors">
-                     <option value="">Sem categoria</option>
+                   <select value={fixedCategory} onChange={(e) => setFixedCategory(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                     <option value="">Categoria...</option>
                      {userSettings?.categories?.map(c => <option key={c} value={c}>{c}</option>)}
                    </select>
-                   <select value={fixedPaymentMethod} onChange={(e) => setFixedPaymentMethod(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors">
-                     <option value="">Sem método</option>
+                   <select value={fixedPaymentMethod} onChange={(e) => setFixedPaymentMethod(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                     <option value="">Método...</option>
                      <option value="Crédito">Crédito</option>
                      <option value="Pix">Pix</option>
                      <option value="Débito">Débito</option>
                      <option value="Dinheiro">Dinheiro</option>
                    </select>
                    {(fixedPaymentMethod === 'Crédito' || fixedPaymentMethod === 'Débito') && (
-                     <select value={fixedCard} onChange={(e) => setFixedCard(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors">
-                       <option value="">Sem cartão</option>
+                     <select value={fixedCard} onChange={(e) => setFixedCard(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                       <option value="">Cartão...</option>
                        {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                    )}
-                   <input type="text" placeholder="Conta (ex: Nubank)" value={fixedAccount} onChange={(e) => setFixedAccount(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors placeholder:text-gray-500" />
+                   <input type="text" placeholder="Conta" value={fixedAccount} onChange={(e) => setFixedAccount(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none placeholder:text-gray-400" />
                  </div>
                  
-                 <label className="flex items-center gap-2 mt-1 cursor-pointer w-max">
-                   <input type="checkbox" checked={fixedIsRecurring} onChange={e => setFixedIsRecurring(e.target.checked)} className="w-3.5 h-3.5 text-indigo-500 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-white dark:bg-[#1A1A1D]" />
-                   <span className="text-[10px] text-gray-500 dark:text-gray-400">Tornar recorrente para os próximos meses</span>
+                 <label className="flex items-center gap-2 mt-1 cursor-pointer w-max text-[11px] text-gray-500 dark:text-gray-400">
+                   <input type="checkbox" checked={fixedIsRecurring} onChange={e => setFixedIsRecurring(e.target.checked)} className="w-3.5 h-3.5 text-indigo-500 rounded border-gray-300" />
+                   <span>Recorrente nos próximos ciclos</span>
                  </label>
                </form>
                
                {fixedExpenses.length > 0 ? (
-                 <div className="space-y-2">
+                 <div className="space-y-1.5 text-xs">
                    {fixedExpenses.map(expense => (
-                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl group hover:border-gray-200 dark:hover:border-white/10 transition-colors">
-                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-2">{expense.description}</span>
+                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl hover:border-gray-200 transition-colors">
+                       <span className="font-semibold text-gray-800 dark:text-gray-200 truncate pr-2">{expense.description}</span>
                        <div className="flex items-center gap-2 shrink-0">
-                         <span className="text-sm font-mono tracking-tight text-gray-600 dark:text-gray-400 mr-2">
+                         <span className="font-bold font-mono text-gray-900 dark:text-white mr-2">
                            {formatCurrency(expense.amount)}
                          </span>
                          <button 
                            onClick={() => startEditFixed(expense)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-indigo-500 transition-colors px-1"
+                           className="text-gray-400 hover:text-indigo-500 p-1 transition-colors"
                            title="Editar"
                          >
-                           <PencilLine className="w-4 h-4" />
+                           <PencilLine className="w-3.5 h-3.5" />
                          </button>
                          <button 
                            onClick={() => handleRemoveFixed(expense.id)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-red-500 transition-colors px-1"
+                           className="text-gray-400 hover:text-red-500 p-1 transition-colors"
                            title="Remover"
                          >
-                           <Trash2 className="w-4 h-4" />
+                           <Trash2 className="w-3.5 h-3.5" />
                          </button>
                        </div>
                      </div>
                    ))}
-                   <div className="flex justify-between items-center pt-2 px-1">
-                     <span className="text-xs font-medium text-gray-500">Subtotal Fixos:</span>
-                     <span className="text-sm font-bold font-mono tracking-tight text-indigo-600 dark:text-indigo-400">
+                   <div className="flex justify-between items-center pt-2 px-1 text-xs">
+                     <span className="uppercase font-semibold text-gray-400 text-[10px]">Subtotal Fixos:</span>
+                     <span className="font-mono font-bold text-gray-900 dark:text-white">
                        {formatCurrency(totalFixed)}
                      </span>
                    </div>
                  </div>
                ) : (
-                 <div className="text-center py-4 text-gray-500 text-sm">Nenhum gasto fixo anotado.</div>
+                 <div className="text-center py-4 text-xs text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-xl">Nenhum gasto fixo registrado.</div>
                )}
             </div>
 
             {/* Gastos Variáveis */}
             <div className="flex flex-col gap-3">
                <div>
-                 <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 uppercase tracking-widest mb-1">Gastos Variáveis</h4>
-                 <p className="text-[10px] text-gray-500">Gastos esporádicos ou avulsos programados</p>
+                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Gastos Variáveis</h4>
+                 <p className="text-[11px] text-gray-400">Gastos eventuais previstos para este mês</p>
                </div>
                
                <form onSubmit={handleAddPlanned} className="flex flex-col gap-2 mb-2">
@@ -550,17 +550,17 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      placeholder="Ex: Presente Aniversário"
                      value={plannedDesc}
                      onChange={(e) => setPlannedDesc(e.target.value)}
-                     className="flex-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
+                     className="flex-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors"
                      required
                    />
                    <div className="relative w-[110px] sm:w-[130px]">
-                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">R$</span>
+                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
                      <input
                        type="text"
                        placeholder="0,00"
                        value={plannedAmt}
                        onChange={(e) => setPlannedAmt(formatAmountInput(e.target.value))}
-                       className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2 py-2 text-sm font-mono outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
+                       className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2 py-2 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-indigo-500"
                        required
                      />
                    </div>
@@ -568,98 +568,98 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      <button
                        type="button"
                        onClick={cancelEditPlanned}
-                       className="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
+                       className="bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
                        title="Cancelar Edição"
                      >
-                       <X className="w-5 h-5" />
+                       <X className="w-4 h-4" />
                      </button>
                    )}
                    <button
                      type="submit"
                      disabled={isSaving || !plannedDesc || !plannedAmt}
-                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 shrink-0"
                      title={editingPlannedId ? "Salvar Edição" : "Adicionar Gasto Previsto"}
                    >
-                     {editingPlannedId ? <PencilLine className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                     {editingPlannedId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                    </button>
                  </div>
                  
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                   <select value={plannedCategory} onChange={(e) => setPlannedCategory(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors">
-                     <option value="">Sem categoria</option>
+                   <select value={plannedCategory} onChange={(e) => setPlannedCategory(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                     <option value="">Categoria...</option>
                      {userSettings?.categories?.map(c => <option key={c} value={c}>{c}</option>)}
                    </select>
-                   <select value={plannedPaymentMethod} onChange={(e) => setPlannedPaymentMethod(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors">
-                     <option value="">Sem método</option>
+                   <select value={plannedPaymentMethod} onChange={(e) => setPlannedPaymentMethod(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                     <option value="">Método...</option>
                      <option value="Crédito">Crédito</option>
                      <option value="Pix">Pix</option>
                      <option value="Débito">Débito</option>
                      <option value="Dinheiro">Dinheiro</option>
                    </select>
                    {(plannedPaymentMethod === 'Crédito' || plannedPaymentMethod === 'Débito') && (
-                     <select value={plannedCard} onChange={(e) => setPlannedCard(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors">
-                       <option value="">Sem cartão</option>
+                     <select value={plannedCard} onChange={(e) => setPlannedCard(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                       <option value="">Cartão...</option>
                        {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                    )}
-                   <input type="text" placeholder="Conta (ex: Nubank)" value={plannedAccount} onChange={(e) => setPlannedAccount(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] text-gray-700 dark:text-gray-300 outline-none focus:border-indigo-500 transition-colors placeholder:text-gray-500" />
+                   <input type="text" placeholder="Conta" value={plannedAccount} onChange={(e) => setPlannedAccount(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none placeholder:text-gray-400" />
                  </div>
                </form>
 
                {plannedExpenses.length > 0 ? (
-                 <div className="space-y-2">
+                 <div className="space-y-1.5 text-xs">
                    {plannedExpenses.map(expense => (
-                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl group hover:border-gray-200 dark:hover:border-white/10 transition-colors">
-                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-2">{expense.description}</span>
+                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl hover:border-gray-200 transition-colors">
+                       <span className="font-semibold text-gray-800 dark:text-gray-200 truncate pr-2">{expense.description}</span>
                        <div className="flex items-center gap-2 shrink-0">
-                         <span className="text-sm font-mono tracking-tight text-gray-600 dark:text-gray-400 mr-2">
+                         <span className="font-bold font-mono text-gray-900 dark:text-white mr-2">
                            {formatCurrency(expense.amount)}
                          </span>
                          <button 
                            onClick={() => handlePostPlanned(expense)}
                            disabled={isSaving || (budget?.processedPlannedExpenses || []).includes(expense.id)}
-                           className={`px-1 transition-colors ${(budget?.processedPlannedExpenses || []).includes(expense.id) ? 'text-green-500 opacity-50 cursor-not-allowed' : 'text-gray-400 hover:text-green-500'}`}
+                           className={`p-1 rounded-lg border transition-colors ${(budget?.processedPlannedExpenses || []).includes(expense.id) ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-not-allowed' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:bg-emerald-500 hover:text-white'}`}
                            title={(budget?.processedPlannedExpenses || []).includes(expense.id) ? "Já lançado no mês" : "Lançar no mês"}
                          >
-                           <Send className="w-4 h-4" />
+                           <Send className="w-3.5 h-3.5" />
                          </button>
                          <button 
                            onClick={() => startEditPlanned(expense)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-indigo-500 transition-colors px-1"
+                           className="text-gray-400 hover:text-indigo-500 p-1 transition-colors"
                            title="Editar"
                          >
-                           <PencilLine className="w-4 h-4" />
+                           <PencilLine className="w-3.5 h-3.5" />
                          </button>
                          <button 
                            onClick={() => handleRemovePlanned(expense.id)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-red-500 transition-colors px-1"
+                           className="text-gray-400 hover:text-red-500 p-1 transition-colors"
                            title="Remover"
                          >
-                           <Trash2 className="w-4 h-4" />
+                           <Trash2 className="w-3.5 h-3.5" />
                          </button>
                        </div>
                      </div>
                    ))}
-                   <div className="flex justify-between items-center pt-2 px-1">
-                     <span className="text-xs font-medium text-gray-500">Subtotal Variáveis:</span>
-                     <span className="text-sm font-bold font-mono tracking-tight text-indigo-600 dark:text-indigo-400">
+                   <div className="flex justify-between items-center pt-2 px-1 text-xs">
+                     <span className="uppercase font-semibold text-gray-400 text-[10px]">Subtotal Variáveis:</span>
+                     <span className="font-mono font-bold text-gray-900 dark:text-white">
                        {formatCurrency(totalPlanned)}
                      </span>
                    </div>
                  </div>
                ) : (
-                 <div className="text-center py-4 text-gray-500 text-sm">Nenhum gasto variável anotado.</div>
+                 <div className="text-center py-4 text-xs text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-xl">Nenhum gasto variável registrado.</div>
                )}
             </div>
 
           </div>
           
           {(plannedExpenses.length > 0 || fixedExpenses.length > 0) && (
-             <div className="mt-6 pt-4 border-t border-gray-200/60 dark:border-white/10 flex justify-between items-center px-2">
-                 <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">Total Projetado</span>
-                 <span className="text-lg font-black font-mono text-indigo-600 dark:text-indigo-400">{formatCurrency(totalBoth)}</span>
+             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-between items-center px-2">
+                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Projetado:</span>
+                 <span className="text-base font-bold font-mono text-gray-900 dark:text-white">{formatCurrency(totalBoth)}</span>
              </div>
           )}
 

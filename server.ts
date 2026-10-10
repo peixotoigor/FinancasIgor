@@ -25,7 +25,7 @@ async function startServer() {
   app.use(express.json());
   app.post("/api/ai/forecast", async (req, res) => {
     try {
-      const { prompt, openRouterKey, openRouterModel, systemInstruction } = req.body;
+      const { prompt, openRouterKey, openRouterModel, systemInstruction, geminiKey } = req.body;
       const defaultSysInfo = "Você é um consultor financeiro sênior e matemático. Forneça respostas diretas e precisas.";
       const sysInstruction = systemInstruction || defaultSysInfo;
       
@@ -51,7 +51,8 @@ async function startServer() {
          if (!data.choices || !data.choices[0]) throw new Error(data.error ? JSON.stringify(data.error) : "Invalid response from OpenRouter");
          res.json({ text: data.choices[0].message.content });
       } else {
-        const response = await ai.models.generateContent({
+        const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+        const response = await client.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -66,6 +67,8 @@ async function startServer() {
       res.status(500).json({ error: e.message });
     }
   });
+
+
 
   const processTelegramPayload = async (update: any, botToken: string) => {
     try {
@@ -234,6 +237,7 @@ async function startServer() {
       let netAccWallet = 0;
       let accReserveOfReserve = 0;
       let totalAcc = 0;
+      let docs: any[] = [];
       
       let currentMonthBudget: any = null;
       let currentMonthBudgetDocId: string | null = null;
@@ -291,8 +295,8 @@ async function startServer() {
       netAccWallet = accWallet - accWalletWithdrawals;
       totalAcc = accReserve + accReserveOfReserve + accWallet - accWalletWithdrawals - accEmergencyWithdrawals;
       
-      const docs = allSnaps.docs.map(d => ({id: d.id, ...d.data()})).concat(inboxSnaps.docs.map(d => ({id: d.id, ...d.data()})));
-      docs.sort((a, b) => (b.date || 0) - (a.date || 0));
+      docs = allSnaps.docs.map(d => ({id: d.id, ...d.data()})).concat(inboxSnaps.docs.map(d => ({id: d.id, ...d.data()})));
+      docs.sort((a, b) => ((b as any).date || 0) - ((a as any).date || 0));
 
       docs.forEach(data => {
          const txDate = new Date(data.date);

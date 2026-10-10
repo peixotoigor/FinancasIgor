@@ -1,5 +1,8 @@
 {
   "name": "FinanceTracker",
-  "description": "Personal finance tracker with Telegram integration support.",
-  "requestFramePermissions": []
+  "description": "Personal finance tracker with Telegram integration, debt payoff planning, and financial management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

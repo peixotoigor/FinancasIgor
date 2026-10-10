@@ -15,6 +15,7 @@ export interface Transaction {
   createdAt: number;
   status?: 'pending' | 'paid';
   reserveModificationsMonth?: string;
+  linkedDebtId?: string;
   reserveModifications?: {
     walletWithdrawals?: number;
     emergencyWithdrawals?: number;
@@ -52,6 +53,7 @@ export interface MonthlyBudget {
   salary: number;
   reserve: number;
   reserveOfReserve: number;
+  emergency?: number;
   wallet: number;
   reserveBank?: string;
   reserveOfReserveBank?: string;
@@ -73,9 +75,10 @@ export interface MonthlyBudget {
     trends: string;
     forecast: string;
     forecastList?: { category: string; amount: string; details: string; examples?: { desc: string; val: string }[]; }[];
-    actionPlan: string;
+    actionPlan?: string[] | string;
     generatedAt: number;
   };
+  transactionsOrder?: string[];
   updatedAt: number;
 }
 
@@ -83,6 +86,7 @@ export interface UserSettings {
   userId: string;
   categories: string[];
   incomeCategories?: string[];
+  paymentMethods?: string[];
   cards: string[];
   updatedAt: number;
   spendingLimits?: {
@@ -115,5 +119,23 @@ export interface Debt {
   interestRate?: number;
   installments?: number;
   dueDate?: number;
+  createdAt: number;
+}
+
+export interface ShoppingItem {
+  id: string;
+  userId: string;
+  description: string;
+  targetBudget: number;
+  averagePrice?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  sources?: string[];
+  notes?: string;
+  status: 'planned' | 'purchased' | 'cancelled';
+  purchasedAmount?: number;
+  priority?: 'low' | 'medium' | 'high';
+  searchedAt?: number;
+  category?: string;
   createdAt: number;
 }

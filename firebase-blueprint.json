@@ -32,6 +32,28 @@
         "updatedAt": { "type": "number" }
       },
       "required": ["userId", "year", "month"]
+    },
+    "ShoppingItem": {
+      "title": "Shopping Item",
+      "description": "Planned purchase or wishlist item with AI market price analysis",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "description": { "type": "string" },
+        "targetBudget": { "type": "number" },
+        "averagePrice": { "type": "number" },
+        "minPrice": { "type": "number" },
+        "maxPrice": { "type": "number" },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["planned", "purchased", "cancelled"] },
+        "purchasedAmount": { "type": "number" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "searchedAt": { "type": "number" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "description", "targetBudget", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -42,6 +64,10 @@
     "monthly_budgets": {
       "schema": { "$ref": "#/entities/MonthlyBudget" },
       "description": "Stores monthly budget tracking"
+    },
+    "shopping_items": {
+      "schema": { "$ref": "#/entities/ShoppingItem" },
+      "description": "Stores planned purchases and wishlist items"
     }
   }
 }
