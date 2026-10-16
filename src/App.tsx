@@ -243,7 +243,39 @@ function Dashboard({ user }: { user: User }) {
       where('userId', '==', user.uid)
     );
     const unsub = onSnapshot(q, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+      const txs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let dateNum = Date.now();
+        const rawDate = data.date;
+        if (typeof rawDate === "number") {
+          dateNum = rawDate < 10000000000 ? rawDate * 1000 : rawDate;
+        } else if (rawDate && typeof rawDate.toMillis === "function") {
+          dateNum = rawDate.toMillis();
+        } else if (rawDate && typeof rawDate.toDate === "function") {
+          dateNum = rawDate.toDate().getTime();
+        } else if (rawDate && rawDate.seconds) {
+          dateNum = rawDate.seconds * 1000;
+        } else if (rawDate instanceof Date) {
+          dateNum = rawDate.getTime();
+        } else if (typeof rawDate === "string") {
+          const trimmed = rawDate.trim();
+          if (trimmed.match(/^\d{4}-\d{2}$/)) {
+            dateNum = new Date(`${trimmed}-01T12:00:00`).getTime();
+          } else if (trimmed.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            dateNum = new Date(`${trimmed}T12:00:00`).getTime();
+          } else {
+            const parsed = new Date(trimmed).getTime();
+            if (!isNaN(parsed)) dateNum = parsed;
+          }
+        }
+        const amount = typeof data.amount === "number" ? data.amount : parseFloat(String(data.amount).replace(",", ".")) || 0;
+        return {
+          ...data,
+          id: doc.id,
+          date: dateNum,
+          amount,
+        } as Transaction;
+      });
       txs.sort((a, b) => b.date - a.date);
       setTransactions(txs);
       setTransactionsLoaded(true);
