@@ -323,7 +323,7 @@ const handlePostPayment = async (e: React.FormEvent) => {
 
       {/* Summary & Chart */}
       <div className={`grid grid-cols-1 ${debts.length > 0 ? 'lg:grid-cols-3' : ''} gap-6`}>
-        <div className="bg-white dark:bg-[#1A1A1D] rounded-2xl p-6 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col justify-center">
+        <div className="glass-card bg-white dark:bg-[#1A1A1D] rounded-2xl p-6 border border-gray-100 dark:border-white/5 shadow-sm flex flex-col justify-center transition-all">
           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Total de Dívidas</h3>
           <p className="text-3xl font-bold font-mono tracking-tight text-rose-500">
             {formatCurrency(totalDebt)}
@@ -331,7 +331,7 @@ const handlePostPayment = async (e: React.FormEvent) => {
         </div>
         
         {debts.length > 0 && (
-          <div className="lg:col-span-2 bg-white dark:bg-[#1A1A1D] rounded-2xl p-6 border border-gray-100 dark:border-white/5 shadow-sm h-64 flex items-center justify-center">
+          <div className="glass-card lg:col-span-2 bg-white dark:bg-[#1A1A1D] rounded-2xl p-6 border border-gray-100 dark:border-white/5 shadow-sm h-64 flex items-center justify-center transition-all">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -366,7 +366,7 @@ const handlePostPayment = async (e: React.FormEvent) => {
       </div>
 
       {/* Form */}
-      <div className="bg-white dark:bg-[#1A1A1D] rounded-2xl p-6 border border-gray-100 dark:border-white/5 shadow-sm">
+      <div className="glass-card bg-white dark:bg-[#1A1A1D] rounded-2xl p-6 border border-gray-100 dark:border-white/5 shadow-sm transition-all">
         <h3 className="font-bold text-gray-900 dark:text-white mb-4">
           {editingId ? 'Editar Dívida' : 'Nova Dívida'}
         </h3>
@@ -474,7 +474,7 @@ const handlePostPayment = async (e: React.FormEvent) => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {debts.map(debt => (
-              <div key={debt.id} className="bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:border-gray-200 dark:hover:border-white/10 transition-colors group">
+              <div key={debt.id} className="glass-card glass-card-hover bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:border-gray-200 dark:hover:border-white/10 transition-all group">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#0A0A0B] flex items-center justify-center shrink-0">

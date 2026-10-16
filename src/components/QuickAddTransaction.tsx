@@ -93,7 +93,7 @@ export function QuickAddTransaction({ userId, userSettings }: QuickAddTransactio
   };
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl p-4 sm:p-5 shadow-sm mb-4">
+    <div className="glass-card bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl p-4 sm:p-5 shadow-sm mb-4 transition-all">
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-4 border-b border-gray-100 dark:border-white/5 gap-2">
         <div className="flex items-center gap-2">

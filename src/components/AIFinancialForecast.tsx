@@ -135,7 +135,7 @@ ${JSON.stringify(aggregatedData)}
   };
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden">
+    <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden transition-all">
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors"

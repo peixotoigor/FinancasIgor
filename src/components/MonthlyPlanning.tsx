@@ -386,7 +386,7 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
   };
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden font-sans">
+    <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden font-sans transition-all">
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 lg:p-5 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors"

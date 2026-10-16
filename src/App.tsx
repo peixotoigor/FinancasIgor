@@ -3,7 +3,7 @@ import { auth, googleProvider, db, handleFirestoreError, OperationType } from '.
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Transaction } from './types';
 import { collection, query, where, onSnapshot, doc, setDoc, orderBy, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
-import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, Landmark, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2, Copy, GripVertical } from 'lucide-react';
+import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, Landmark, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2, Copy, GripVertical, Sparkles, Search } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TransactionModal } from './components/TransactionModal';
 import { AnalysisTab } from './components/AnalysisTab';
@@ -41,8 +41,15 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B] text-gray-900 dark:text-white flex items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-md bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-3xl p-8 sm:p-10 shadow-xl text-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0A0A0B] text-gray-900 dark:text-white flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        {/* Ambient Glow Orbs */}
+        <div className="ambient-glow-bg">
+          <div className="ambient-orb ambient-orb-1" />
+          <div className="ambient-orb ambient-orb-2" />
+          <div className="ambient-orb ambient-orb-3" />
+        </div>
+
+        <div className="glass-card w-full max-w-md bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-3xl p-8 sm:p-10 shadow-xl text-center relative z-10">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-bold text-xl mx-auto shadow-lg shadow-emerald-500/20 mb-6">
             FT
           </div>
@@ -55,7 +62,7 @@ export default function App() {
 
           <button 
             onClick={() => signInWithPopup(auth, googleProvider).catch(e => console.error(e.message || String(e)))}
-            className="w-full flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1D] hover:bg-gray-50 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-2xl px-6 py-3.5 font-medium shadow-sm transition-all duration-200"
+            className="w-full flex items-center justify-center gap-3 glass-card-hover bg-white dark:bg-[#1A1A1D] hover:bg-gray-50 dark:hover:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-2xl px-6 py-3.5 font-medium shadow-sm transition-all duration-200 cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -89,6 +96,9 @@ function Dashboard({ user }: { user: User }) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return document.documentElement.classList.contains('dark') || 
            localStorage.getItem('theme') === 'dark';
+  });
+  const [isLiquidGlass, setIsLiquidGlass] = useState(() => {
+    return localStorage.getItem('liquid_glass') !== 'false';
   });
   const [syncState, setSyncState] = useState({ transactions: false, budgets: false, settings: false, inbox: false });
   const [rightSidebarWidth, setRightSidebarWidth] = useState(380);
@@ -191,6 +201,16 @@ function Dashboard({ user }: { user: User }) {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    if (isLiquidGlass) {
+      document.documentElement.classList.add('liquid-glass-enabled');
+      localStorage.setItem('liquid_glass', 'true');
+    } else {
+      document.documentElement.classList.remove('liquid-glass-enabled');
+      localStorage.setItem('liquid_glass', 'false');
+    }
+  }, [isLiquidGlass]);
 
   // Load User Settings
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
@@ -332,9 +352,23 @@ function Dashboard({ user }: { user: User }) {
     });
   }, [currentMonthTransactions, budget?.transactionsOrder]);
 
+  // Todas as transações do mês para visualização completa sem cortes
   const recentTransactions = useMemo(() => {
-    return orderedCurrentMonthTransactions.slice(0, 15);
+    return orderedCurrentMonthTransactions;
   }, [orderedCurrentMonthTransactions]);
+
+  const [recentTxSearch, setRecentTxSearch] = useState('');
+  const [showRecentSearch, setShowRecentSearch] = useState(false);
+
+  const displayedRecentTransactions = useMemo(() => {
+    if (!recentTxSearch.trim()) return recentTransactions;
+    const term = recentTxSearch.toLowerCase();
+    return recentTransactions.filter(t => 
+      t.description.toLowerCase().includes(term) ||
+      t.category.toLowerCase().includes(term) ||
+      (t.paymentMethod && t.paymentMethod.toLowerCase().includes(term))
+    );
+  }, [recentTransactions, recentTxSearch]);
 
   const handleReorderTransaction = async (fromIdx: number, toIdx: number) => {
     if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return;
@@ -342,8 +376,7 @@ function Dashboard({ user }: { user: User }) {
     const [moved] = reordered.splice(fromIdx, 1);
     reordered.splice(toIdx, 0, moved);
 
-    const remainingIds = orderedCurrentMonthTransactions.slice(15).map(t => t.id!).filter(Boolean);
-    const newOrderIds = [...reordered.map(t => t.id!).filter(Boolean), ...remainingIds];
+    const newOrderIds = reordered.map(t => t.id!).filter(Boolean);
 
     setBudget(prev => prev ? { ...prev, transactionsOrder: newOrderIds } : null);
 
@@ -418,9 +451,16 @@ function Dashboard({ user }: { user: User }) {
   };
 
   return (
-    <div className="flex flex-col-reverse md:flex-row h-[100dvh] w-full bg-gray-50 dark:bg-[#0A0A0B] text-gray-900 dark:text-white font-sans overflow-hidden">
+    <div className="flex flex-col-reverse md:flex-row h-[100dvh] w-full bg-gray-50 dark:bg-[#0A0A0B] text-gray-900 dark:text-white font-sans overflow-hidden relative">
+      {/* Ambient Glow Orbs for Liquid Glass Refraction */}
+      <div className="ambient-glow-bg">
+        <div className="ambient-orb ambient-orb-1" />
+        <div className="ambient-orb ambient-orb-2" />
+        <div className="ambient-orb ambient-orb-3" />
+      </div>
+
       {/* Sidebar Navigation */}
-      <nav className="w-full md:w-20 bg-white dark:bg-[#121214] border-t md:border-t-0 md:border-r border-gray-200 dark:border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:py-6 md:gap-4 min-h-[4rem] md:h-full shrink-0 z-50">
+      <nav className="w-full md:w-20 glass-nav bg-white dark:bg-[#121214] border-t md:border-t-0 md:border-r border-gray-200 dark:border-white/5 flex flex-row md:flex-col items-center justify-around md:justify-start pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:py-6 md:gap-4 min-h-[4rem] md:h-full shrink-0 z-50">
         <div className="hidden md:flex w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white font-bold items-center justify-center text-sm shadow-md shadow-emerald-500/20">
           FT
         </div>
@@ -478,6 +518,13 @@ function Dashboard({ user }: { user: User }) {
         </div>
 
         <div className="hidden md:flex flex-col mt-auto items-center gap-2 w-full">
+           <button 
+             onClick={() => setIsLiquidGlass(!isLiquidGlass)} 
+             className={`p-2.5 rounded-2xl transition-all ${isLiquidGlass ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'}`} 
+             title={isLiquidGlass ? "Efeito Liquid Glass Ativado" : "Efeito Liquid Glass Desativado"}
+           >
+              <Sparkles className="w-5 h-5" />
+           </button>
            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl transition-colors" title="Alternar Tema">
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
            </button>
@@ -487,7 +534,7 @@ function Dashboard({ user }: { user: User }) {
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col gap-6 p-4 md:p-8 lg:p-10 overflow-y-auto w-full bg-gray-50 dark:bg-[#0A0A0B]">
+      <main className="flex-1 flex flex-col gap-6 p-4 md:p-8 lg:p-10 overflow-y-auto w-full bg-gray-50/50 dark:bg-[#0A0A0B]/60 relative z-10">
         {/* Header */}
         <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 shrink-0 relative z-40 w-full">
            <div className="flex justify-between items-center w-full md:w-auto">
@@ -506,6 +553,13 @@ function Dashboard({ user }: { user: User }) {
              </div>
              
              <div className="flex md:hidden items-center gap-2">
+                <button 
+                  onClick={() => setIsLiquidGlass(!isLiquidGlass)} 
+                  className={`p-2 rounded-xl transition-all ${isLiquidGlass ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`} 
+                  title="Liquid Glass"
+                >
+                   <Sparkles className="w-5 h-5" />
+                </button>
                 <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors" title="Alternar Tema">
                    {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -555,7 +609,7 @@ function Dashboard({ user }: { user: User }) {
                     {/* Top 3 Metric Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                        {/* Total Receitas */}
-                       <div className="bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                       <div className="glass-card glass-card-hover bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between">
                           <div className="flex items-center justify-between mb-4">
                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receitas</span>
                              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -568,7 +622,7 @@ function Dashboard({ user }: { user: User }) {
                        </div>
 
                        {/* Total Despesas */}
-                       <div className="bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                       <div className="glass-card glass-card-hover bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between">
                           <div className="flex items-center justify-between mb-4">
                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Despesas</span>
                              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
@@ -581,7 +635,7 @@ function Dashboard({ user }: { user: User }) {
                        </div>
 
                        {/* Balanço Mês */}
-                       <div className="bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between">
+                       <div className="glass-card glass-card-hover bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col justify-between">
                           <div className="flex items-center justify-between mb-4">
                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balanço Mês</span>
                              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -605,7 +659,7 @@ function Dashboard({ user }: { user: User }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                        {/* Análise Mês */}
-                       <div className="bg-white dark:bg-[#121214] p-5 lg:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col">
+                       <div className="glass-card bg-white dark:bg-[#121214] p-5 lg:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col">
                           <div className="flex items-center justify-between mb-5">
                              <div className="flex items-center gap-2">
                                <BarChart3 className="w-4 h-4 text-emerald-500" />
@@ -663,7 +717,7 @@ function Dashboard({ user }: { user: User }) {
                        </div>
 
                        {/* Resumo Reservas */}
-                       <div className="bg-white dark:bg-[#121214] p-5 lg:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col">
+                       <div className="glass-card bg-white dark:bg-[#121214] p-5 lg:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col">
                           <div className="flex items-center justify-between mb-5">
                              <div className="flex items-center gap-2">
                                  <PiggyBank className="w-4 h-4 text-indigo-500" />
@@ -716,7 +770,7 @@ function Dashboard({ user }: { user: User }) {
 
                  {/* Right Column: Últimas Transações */}
                  <div 
-                   className="w-full mt-6 lg:mt-0 shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm relative lg:absolute lg:top-0 lg:bottom-0 lg:right-0 group/sidebar h-[500px] lg:h-auto overflow-hidden"
+                   className="glass-card w-full mt-6 lg:mt-0 shrink-0 flex flex-col bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm relative lg:absolute lg:top-0 lg:bottom-0 lg:right-0 group/sidebar h-[520px] lg:h-auto overflow-hidden min-h-0"
                    style={{ width: `${rightSidebarWidth}px` }}
                  >
                     {/* Resize Handle */}
@@ -727,33 +781,81 @@ function Dashboard({ user }: { user: User }) {
                       <div className="w-1 h-8 rounded-full bg-gray-300 dark:bg-gray-600 opacity-40 group-hover/sidebar:opacity-100" />
                     </div>
                     
-                    <div className="flex flex-col h-full overflow-hidden relative z-10">
-                      <div className="p-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between sticky top-0 z-10 bg-white dark:bg-[#121214]">
-                          <div className="flex items-center gap-2">
-                             <List className="w-4 h-4 text-emerald-500" />
-                             <div>
-                               <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">Últimas do Mês</h2>
-                               <span className="text-[10px] text-gray-400 block -mt-0.5">Arraste para reorganizar</span>
+                    <div className="flex flex-col h-full overflow-hidden relative z-10 min-h-0">
+                      <div className="glass-header p-4 border-b border-gray-100 dark:border-white/5 flex flex-col gap-2.5 sticky top-0 z-10 bg-white dark:bg-[#121214]">
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                                <List className="w-4 h-4 text-emerald-500" />
+                                <div className="flex items-center gap-1.5">
+                                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">Últimas do Mês</h2>
+                                  <span 
+                                    className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 font-semibold"
+                                    title={`${recentTransactions.length} movimentações no mês`}
+                                  >
+                                    {recentTransactions.length}
+                                  </span>
+                                </div>
+                             </div>
+                             <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setShowRecentSearch(prev => !prev);
+                                    if (showRecentSearch) setRecentTxSearch('');
+                                  }}
+                                  className={`p-1.5 rounded-lg transition-colors ${showRecentSearch || recentTxSearch ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                                  title="Filtrar movimentações"
+                                >
+                                  <Search className="w-3.5 h-3.5" />
+                                </button>
+                                {budget?.transactionsOrder && budget.transactionsOrder.length > 0 && (
+                                  <button 
+                                    onClick={handleResetTransactionOrder} 
+                                    className="text-[11px] text-gray-400 hover:text-emerald-500 flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/5" 
+                                    title="Restaurar ordenação por data"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span className="hidden sm:inline">Por data</span>
+                                  </button>
+                                )}
+                                <button onClick={() => setActiveTab('transactions')} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Ver tudo &rarr;</button>
                              </div>
                           </div>
-                          <div className="flex items-center gap-2.5">
-                             {budget?.transactionsOrder && budget.transactionsOrder.length > 0 && (
-                               <button 
-                                 onClick={handleResetTransactionOrder} 
-                                 className="text-[11px] text-gray-400 hover:text-emerald-500 flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/5" 
-                                 title="Restaurar ordenação por data"
-                               >
-                                 <RefreshCw className="w-3 h-3" />
-                                 <span className="hidden sm:inline">Por data</span>
-                               </button>
-                             )}
-                             <button onClick={() => setActiveTab('transactions')} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Ver tudo &rarr;</button>
+
+                          {showRecentSearch && (
+                             <div className="relative">
+                                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input
+                                  type="text"
+                                  value={recentTxSearch}
+                                  onChange={(e) => setRecentTxSearch(e.target.value)}
+                                  placeholder="Filtrar por nome, categoria ou pagamento..."
+                                  className="w-full text-xs pl-8 pr-7 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 focus:outline-none focus:border-emerald-500 text-gray-900 dark:text-white"
+                                  autoFocus
+                                />
+                                {recentTxSearch && (
+                                  <button 
+                                    onClick={() => setRecentTxSearch('')} 
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-white p-0.5"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                             </div>
+                          )}
+
+                          <div className="flex items-center justify-between text-[10px] text-gray-400">
+                             <span>
+                               {recentTxSearch 
+                                 ? `${displayedRecentTransactions.length} de ${recentTransactions.length} filtradas` 
+                                 : `${recentTransactions.length} movimentações no mês`}
+                             </span>
+                             <span>{recentTxSearch ? "Filtro ativo" : "Arraste para reorganizar"}</span>
                           </div>
                       </div>
-                      <div className="flex-1 overflow-auto p-2">
-                      {recentTransactions.length > 0 ? (
+                      <div className="flex-1 min-h-0 overflow-y-auto p-2 overscroll-contain">
+                      {displayedRecentTransactions.length > 0 ? (
                          <div className="flex flex-col gap-1.5">
-                            {recentTransactions.map((tx, idx) => (
+                            {displayedRecentTransactions.map((tx, idx) => (
                                <div 
                                  key={tx.id} 
                                  draggable="true"
@@ -783,7 +885,7 @@ function Dashboard({ user }: { user: User }) {
                                    setDragOverTxIdx(null);
                                  }}
                                  onClick={(e) => { e.stopPropagation(); setTxToEdit(tx); setIsModalOpen(true); }} 
-                                 className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-all group border ${
+                                 className={`glass-subtle flex items-center justify-between p-2.5 sm:p-3 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-all group border ${
                                    draggedTxIdx === idx 
                                      ? 'opacity-35 border-dashed border-emerald-500 scale-[0.98] bg-gray-50/50 dark:bg-white/[0.02]' 
                                      : dragOverTxIdx === idx 
@@ -850,7 +952,7 @@ function Dashboard({ user }: { user: User }) {
                          </div>
                       ) : (
                          <div className="py-12 flex flex-col items-center justify-center text-center">
-                            <p className="text-xs text-gray-400">Sem movimentações recentes</p>
+                            <p className="text-xs text-gray-400">{recentTxSearch ? "Nenhuma movimentação encontrada" : "Sem movimentações neste mês"}</p>
                          </div>
                       )}
                     </div>
@@ -880,7 +982,7 @@ function Dashboard({ user }: { user: User }) {
            )}
 
            {activeTab === 'settings' && (
-             <SettingsTab user={user} userSettings={userSettings} />
+             <SettingsTab user={user} userSettings={userSettings} isLiquidGlass={isLiquidGlass} setIsLiquidGlass={setIsLiquidGlass} />
            )}
         </div>
       </main>
@@ -889,7 +991,7 @@ function Dashboard({ user }: { user: User }) {
 
       {transactionToDelete && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl">
+          <div className="glass-card bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-2xl">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Excluir Transação</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
               Tem certeza de que deseja remover permanentemente o registro de <strong>{transactionToDelete.description}</strong>?

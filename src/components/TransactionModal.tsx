@@ -207,7 +207,7 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm font-sans">
-      <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/10 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative max-h-[95vh] overflow-y-auto text-gray-900 dark:text-white">
+      <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/10 rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative max-h-[95vh] overflow-y-auto text-gray-900 dark:text-white transition-all">
         <button 
           onClick={onClose} 
           className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"

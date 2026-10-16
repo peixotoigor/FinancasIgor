@@ -172,8 +172,8 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
   }, [transactions]);
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm flex flex-col h-full max-h-[850px] overflow-hidden font-sans">
-       <div className="p-4 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#121214] shrink-0">
+    <div className="glass-card bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm flex flex-col h-full max-h-[850px] overflow-hidden font-sans transition-all">
+       <div className="glass-header p-4 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#121214] shrink-0">
           <div>
             <h2 className="text-base font-bold text-gray-900 dark:text-white">Transações</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">Extrato detalhado de movimentações</p>

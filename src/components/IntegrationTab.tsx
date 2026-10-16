@@ -214,7 +214,7 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
        </div>
 
        {/* Orçamento e Alertas */}
-       <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+       <section className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
                 <BellRing className="w-5 h-5" />
@@ -269,7 +269,7 @@ export function IntegrationTab({ user, userSettings }: { user: User, userSetting
        </section>
 
        {/* Assistente & IA */}
-       <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+       <section className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
              <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
@@ -405,7 +405,7 @@ Content-Type: application/json
        </section>
 
        {/* CSV Import */}
-       <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+       <section className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                 <Database className="w-5 h-5" />

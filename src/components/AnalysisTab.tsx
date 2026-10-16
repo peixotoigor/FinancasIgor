@@ -85,7 +85,7 @@ export function AnalysisTab({ transactions, currentYear, currentMonth }: { trans
 
   return (
     <div className="space-y-6 pb-20 max-w-7xl mx-auto w-full font-sans">
-       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
+       <div className="glass-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm transition-all">
           <div>
              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Gráficos & Análises</h2>
              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-0.5">Visão consolidada de histórico, distribuição de gastos e sazonalidade.</p>
@@ -93,7 +93,7 @@ export function AnalysisTab({ transactions, currentYear, currentMonth }: { trans
        </div>
 
        {/* Monthly Summary Report */}
-       <div className="p-6 rounded-2xl border border-gray-200 dark:border-white/5 bg-white dark:bg-[#121214] shadow-sm">
+       <div className="glass-card p-6 rounded-2xl border border-gray-200 dark:border-white/5 bg-white dark:bg-[#121214] shadow-sm transition-all">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
              <div className="flex items-center gap-2">
                  <Activity className="w-5 h-5 text-emerald-500" />
@@ -153,7 +153,7 @@ export function AnalysisTab({ transactions, currentYear, currentMonth }: { trans
        </div>
 
        {/* Annual Mixed Chart */}
-       <div className="bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm">
+       <div className="glass-card bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm transition-all">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
              <div className="flex items-center gap-2">
                  <BarChart3 className="w-5 h-5 text-indigo-500" />
@@ -196,7 +196,7 @@ export function AnalysisTab({ transactions, currentYear, currentMonth }: { trans
        </div>
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <div className="bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col">
+         <div className="glass-card bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col transition-all">
             <div className="flex items-center gap-2 mb-4">
                 <PieChartIcon className="w-5 h-5 text-indigo-500" />
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">Distribuição por Categoria</h3>
@@ -236,7 +236,7 @@ export function AnalysisTab({ transactions, currentYear, currentMonth }: { trans
             )}
          </div>
          
-         <div className="bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col">
+         <div className="glass-card bg-white dark:bg-[#121214] p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm flex flex-col transition-all">
             <div className="flex items-center gap-2 mb-4">
                 <TrendingDown className="w-5 h-5 text-rose-500" />
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">Categorias em Destaque</h3>

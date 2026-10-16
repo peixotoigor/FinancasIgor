@@ -34,3 +34,182 @@ html, body {
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
+
+/* ==========================================================================
+   LIQUID GLASS DESIGN SYSTEM (Refined & Sophisticated)
+   ========================================================================== */
+
+/* Ambient Glow Orbs in Background */
+.ambient-glow-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.liquid-glass-enabled .ambient-glow-bg {
+  opacity: 1;
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+/* Light mode orb colors */
+.ambient-orb-1 {
+  top: -8%;
+  left: 15%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(20, 184, 166, 0.04) 70%, transparent 100%);
+}
+.ambient-orb-2 {
+  top: 18%;
+  right: -5%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.10) 0%, rgba(139, 92, 246, 0.03) 70%, transparent 100%);
+}
+.ambient-orb-3 {
+  bottom: 5%;
+  left: 30%;
+  width: 440px;
+  height: 440px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.09) 0%, rgba(59, 130, 246, 0.02) 70%, transparent 100%);
+}
+
+/* Dark mode orb colors */
+.dark .ambient-orb-1 {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.16) 0%, rgba(20, 184, 166, 0.06) 70%, transparent 100%);
+}
+.dark .ambient-orb-2 {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.14) 0%, rgba(139, 92, 246, 0.04) 70%, transparent 100%);
+}
+.dark .ambient-orb-3 {
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(59, 130, 246, 0.04) 70%, transparent 100%);
+}
+
+/* Glass Card — Translucent with specular highlights */
+.liquid-glass-enabled .glass-card {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 
+    0 8px 32px 0 rgba(15, 23, 42, 0.05),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.02) !important;
+}
+
+.dark.liquid-glass-enabled .glass-card,
+.dark .liquid-glass-enabled .glass-card {
+  background: rgba(18, 18, 22, 0.72) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 
+    0 12px 40px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 16px 0 rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Glass Card with Hover Effect */
+.liquid-glass-enabled .glass-card-hover {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.liquid-glass-enabled .glass-card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 
+    0 14px 38px 0 rgba(15, 23, 42, 0.08),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 1) !important;
+  transform: translateY(-1.5px);
+}
+
+.dark.liquid-glass-enabled .glass-card-hover:hover,
+.dark .liquid-glass-enabled .glass-card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 
+    0 18px 48px 0 rgba(0, 0, 0, 0.58),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.22) !important;
+  transform: translateY(-1.5px);
+}
+
+/* Glass Navigation (Sidebar & Top headers) */
+.liquid-glass-enabled .glass-nav {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.dark.liquid-glass-enabled .glass-nav,
+.dark .liquid-glass-enabled .glass-nav {
+  background: rgba(14, 14, 18, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Glass Subtle (inner list items, badges, sub-panels) */
+.liquid-glass-enabled .glass-subtle {
+  background: rgba(243, 244, 246, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark.liquid-glass-enabled .glass-subtle,
+.dark .liquid-glass-enabled .glass-subtle {
+  background: rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Glass Inner Header / Sticky Bar */
+.liquid-glass-enabled .glass-header {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark.liquid-glass-enabled .glass-header,
+.dark .liquid-glass-enabled .glass-header {
+  background: rgba(18, 18, 22, 0.8) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Glass Inputs */
+.liquid-glass-enabled .glass-input {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-color: rgba(229, 231, 235, 0.8) !important;
+}
+
+.dark.liquid-glass-enabled .glass-input,
+.dark .liquid-glass-enabled .glass-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.liquid-glass-enabled .glass-input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
+}
+
+

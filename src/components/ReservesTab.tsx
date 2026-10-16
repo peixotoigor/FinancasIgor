@@ -146,7 +146,7 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
   return (
     <div className="space-y-8 font-sans text-gray-900 dark:text-white">
       {/* Top Header & Month Picker */}
-      <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-5 sm:p-6 shadow-sm">
+      <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-5 sm:p-6 shadow-sm transition-all">
          <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-6">
              <div className="flex items-center gap-4">
                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -236,7 +236,7 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
             </div>
 
             {/* Input Group: Reservas */}
-            <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-5 shadow-sm space-y-5 md:col-span-2">
+            <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-5 shadow-sm space-y-5 md:col-span-2 transition-all">
                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3">
                   <ArrowUpCircle className="w-4 h-4 text-emerald-500" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Alocação de Reservas</h3>
@@ -286,7 +286,7 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
 
          {/* Summary & Dashboard */}
          <div className="flex flex-col gap-6 lg:col-span-1 h-full">
-             <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden flex flex-col h-full">
+             <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden flex flex-col h-full transition-all">
                   {/* Top section: Total Accumulation */}
                  <div className="p-6 border-b border-gray-100 dark:border-white/5">
                     <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider block mb-1">Total Acumulado</span>

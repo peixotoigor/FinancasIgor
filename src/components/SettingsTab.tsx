@@ -3,11 +3,13 @@ import { UserSettings } from '../types';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { doc, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
-import { Trash2, Plus, Wrench, ArrowDownRight, ArrowUpRight, CreditCard, Database, ShieldAlert, Check, Loader2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { Trash2, Plus, Wrench, ArrowDownRight, ArrowUpRight, CreditCard, Database, ShieldAlert, Check, Loader2, ChevronUp, ChevronDown, GripVertical, Sparkles } from 'lucide-react';
 
 interface Props {
   user: User;
   userSettings: UserSettings;
+  isLiquidGlass?: boolean;
+  setIsLiquidGlass?: (val: boolean) => void;
 }
 
 const PRESET_COLORS = [
@@ -41,7 +43,7 @@ const SortableConfigList = ({
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm relative flex flex-col h-full font-sans">
+    <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm relative flex flex-col h-full font-sans transition-all">
        <div className="flex justify-between items-start mb-6 pb-3 border-b border-gray-100 dark:border-white/5">
          <div className="flex items-center gap-3">
            <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-700 dark:text-gray-300">
@@ -83,7 +85,7 @@ const SortableConfigList = ({
                 setDraggedIdx(null);
                 setDragOverIdx(null);
               }}
-              className={`flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-2xl p-2 group transition-all ${draggedIdx === idx ? 'opacity-30' : ''} ${dragOverIdx === idx ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' : ''}`}
+              className={`glass-subtle flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-2xl p-2 group transition-all ${draggedIdx === idx ? 'opacity-30' : ''} ${dragOverIdx === idx ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' : ''}`}
             >
                <div className="flex flex-col cursor-grab active:cursor-grabbing px-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 touch-none">
                   <GripVertical className="w-3.5 h-3.5" />
@@ -126,7 +128,28 @@ const SortableConfigList = ({
   );
 };
 
-export function SettingsTab({ user, userSettings }: Props) {
+export function SettingsTab({ user, userSettings, isLiquidGlass, setIsLiquidGlass }: Props) {
+  const [internalGlass, setInternalGlass] = useState(() => {
+    return localStorage.getItem('liquid_glass') !== 'false';
+  });
+
+  const effectiveIsLiquidGlass = isLiquidGlass !== undefined ? isLiquidGlass : internalGlass;
+
+  const handleToggleLiquidGlass = (val: boolean) => {
+    if (setIsLiquidGlass) {
+      setIsLiquidGlass(val);
+    } else {
+      setInternalGlass(val);
+      if (val) {
+        document.documentElement.classList.add('liquid-glass-enabled');
+        localStorage.setItem('liquid_glass', 'true');
+      } else {
+        document.documentElement.classList.remove('liquid-glass-enabled');
+        localStorage.setItem('liquid_glass', 'false');
+      }
+    }
+  };
+
   const [categories, setCategories] = useState<{name: string, color: string}[]>(() => {
     return userSettings.categories.map(c => ({
       name: c,
@@ -512,6 +535,42 @@ export function SettingsTab({ user, userSettings }: Props) {
          </div>
        </div>
       
+      {/* Seção Design & Aparência — Liquid Glass */}
+      <section className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-7 shadow-sm transition-all">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-400/20 text-emerald-500 flex items-center justify-center font-bold shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Design Liquid Glass Refinado</h3>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                  effectiveIsLiquidGlass 
+                    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/20' 
+                    : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10'
+                }`}>
+                  {effectiveIsLiquidGlass ? 'Ativado' : 'Desativado'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl leading-relaxed">
+                Translucidez fluida com reflexos de luz especulares nos cantos e desfoque óptico nos modos Claro e Escuro. Desative se preferir um visual clássico totalmente opaco.
+              </p>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={effectiveIsLiquidGlass}
+              onChange={(e) => handleToggleLiquidGlass(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500 shadow-inner"></div>
+          </label>
+        </div>
+      </section>
+
       {/* Configuration Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <SortableConfigList title="Categorias de Gastos" icon={<ArrowDownRight className="w-4 h-4 text-rose-500" />} items={categories} setItems={setCategories} />
@@ -520,7 +579,7 @@ export function SettingsTab({ user, userSettings }: Props) {
       </div>
 
       {/* Advanced / Maintenance Section */}
-      <section className="bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 mt-8 shadow-sm">
+      <section className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-3xl p-6 sm:p-8 mt-8 shadow-sm">
         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs">
               <Database className="w-5 h-5" />
@@ -532,7 +591,7 @@ export function SettingsTab({ user, userSettings }: Props) {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-2xl p-6 relative flex flex-col">
+          <div className="glass-subtle bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-2xl p-6 relative flex flex-col">
             <div className="flex items-center gap-3 mb-4 pb-2 border-b border-gray-100 dark:border-white/5">
               <Wrench className="w-4 h-4 text-indigo-500" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Reparo de Dados</h3>
@@ -577,7 +636,7 @@ export function SettingsTab({ user, userSettings }: Props) {
             )}
           </div>
 
-          <div className="bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-2xl p-6 relative flex flex-col">
+          <div className="glass-subtle bg-gray-50 dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-2xl p-6 relative flex flex-col">
             <div className="flex items-center gap-3 mb-4 pb-2 border-b border-gray-100 dark:border-white/5">
               <ShieldAlert className="w-4 h-4 text-rose-500" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Limpeza de Registros Antigos</h3>

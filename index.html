@@ -14,6 +14,11 @@
       if (localStorage.getItem('theme') === 'dark') {
         document.documentElement.classList.add('dark');
       }
+      localStorage.removeItem('design_system');
+      document.documentElement.classList.remove('design-monochrome');
+      if (localStorage.getItem('liquid_glass') !== 'false') {
+        document.documentElement.classList.add('liquid-glass-enabled');
+      }
     </script>
   </head>
   <body>
