@@ -4,7 +4,7 @@ import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { doc, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { Trash2, Plus, Wrench, ArrowDownRight, ArrowUpRight, CreditCard, Database, ShieldAlert, Check, Loader2, ChevronUp, ChevronDown, GripVertical, Sparkles } from 'lucide-react';
-import { Button, Chip } from '@heroui/react';
+import { Button, Chip } from './ui';
 
 interface Props {
   user: User;

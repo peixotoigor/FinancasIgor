@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Plus, Trash2, Calculator, HelpCircle, PencilLin
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import type { MonthlyBudget, PlannedExpense, Transaction, UserSettings } from '../types';
-import { Button, Card, Chip } from '@heroui/react';
+import { Button, Card, Chip } from './ui';
 
 interface MonthlyPlanningProps {
   userId: string;

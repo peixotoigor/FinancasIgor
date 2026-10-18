@@ -3,7 +3,7 @@ import { UserSettings } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { Check, X, Plus, TrendingDown, TrendingUp, CreditCard, Calendar, Zap, Tag, Wallet, DollarSign } from 'lucide-react';
-import { Button, Card, Chip } from '@heroui/react';
+import { Button, Card, Chip } from './ui';
 
 interface QuickAddTransactionProps {
   userId?: string;

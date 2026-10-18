@@ -3,7 +3,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, addDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { Plus, Trash2, TrendingDown, Calendar, Percent, Landmark, PencilLine, X, Bot, Send, ArrowRight, BrainCircuit, History, Undo2, Save } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
-import { Button, Card, CardHeader, CardContent, Chip } from '@heroui/react';
+import { Button, Card, CardHeader, CardContent, Chip } from './ui';
 import type { Debt, UserSettings, Transaction } from '../types';
 
 interface DividasTabProps {

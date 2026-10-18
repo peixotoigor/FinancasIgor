@@ -3,7 +3,7 @@ import { Transaction, UserSettings } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, collection, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { X, Plus, Trash2, Pencil, MoreVertical } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button } from './ui';
 
 export function TransactionModal({ isOpen, onClose, userId, userSettings, initialData, initialType }: { isOpen: boolean, onClose: () => void, userId: string, userSettings: UserSettings, initialData?: Transaction | null, initialType?: 'expense' | 'income' }) {
   const [type, setType] = useState<'income' | 'expense' | 'transfer'>(initialType || 'expense');

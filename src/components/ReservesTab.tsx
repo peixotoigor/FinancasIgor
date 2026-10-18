@@ -3,7 +3,7 @@ import { MonthlyBudget } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc, query, collection, where, onSnapshot } from 'firebase/firestore';
 import { PiggyBank, Briefcase, ArrowDownCircle, ArrowUpCircle, Landmark, Trash2 } from 'lucide-react';
-import { Button, Card, CardHeader, CardContent, Chip } from '@heroui/react';
+import { Button, Card, CardHeader, CardContent, Chip } from './ui';
 import { WithdrawalsManager } from './WithdrawalsManager';
 
 export function ReservesTab({ userId, year }: { userId: string, year: number }) {

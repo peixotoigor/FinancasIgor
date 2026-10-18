@@ -3,21 +3,19 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
+    "lint": "tsc --noEmit",
     "preview": "vite preview",
     "start": "node server.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
-    "@heroui/react": "^3.2.6",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "firebase": "^10.8.1",
     "firebase-admin": "^13.8.0",
-    "framer-motion": "^14.3.0",
     "lucide-react": "^0.344.0",
-    "motion": "^11.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.4",

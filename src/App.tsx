@@ -4,7 +4,7 @@ import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/aut
 import type { Transaction } from './types';
 import { collection, query, where, onSnapshot, doc, setDoc, orderBy, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
 import { LogOut, Plus, Wallet, FileText, Settings, Bot, BarChart3, LayoutDashboard, List, PiggyBank, ChevronDown, ChevronUp, Eye, EyeOff, X, Sun, Moon, TrendingUp, TrendingDown, Activity, Landmark, AlertCircle, Cloud, CheckCircle2, RefreshCw, CloudOff, Trash2, Copy, GripVertical, Sparkles, Search, CreditCard, ArrowUpRight, ArrowDownRight, Tag, ShieldCheck, Flame, PieChart, ArrowRight, Zap, Coins, Calendar } from 'lucide-react';
-import { Button, Card, Chip } from '@heroui/react';
+import { Button, Card, Chip } from './components/ui';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TransactionModal } from './components/TransactionModal';
 import { AnalysisTab } from './components/AnalysisTab';
@@ -232,6 +232,11 @@ function Dashboard({ user }: { user: User }) {
     const unsub = onSnapshot(doc(db, 'user_settings', user.uid), (docSnap) => {
       if (docSnap.exists()) {
         setUserSettings(docSnap.data() as UserSettings);
+        if (initialSettingsLoadedRef.current) {
+          triggerSyncPulse();
+        } else {
+          initialSettingsLoadedRef.current = true;
+        }
       } else {
         const initialSettings: UserSettings = {
           userId: user.uid,
@@ -241,12 +246,8 @@ function Dashboard({ user }: { user: User }) {
           cards: ['Nubank', 'Inter'],
           updatedAt: Date.now()
         };
-        setDoc(doc(db, 'user_settings', user.uid), initialSettings);
-      }
-      if (initialSettingsLoadedRef.current) {
-        triggerSyncPulse();
-      } else {
         initialSettingsLoadedRef.current = true;
+        setDoc(doc(db, 'user_settings', user.uid), initialSettings);
       }
     });
     return unsub;
@@ -296,16 +297,17 @@ function Dashboard({ user }: { user: User }) {
       txs.sort((a, b) => b.date - a.date);
       setTransactions(txs);
       setTransactionsLoaded(true);
-      if (initialTxsLoadedRef.current) {
-        triggerSyncPulse();
-      } else {
+      
+      if (!initialTxsLoadedRef.current) {
         initialTxsLoadedRef.current = true;
+      } else if (snapshot.docChanges().length > 0) {
+        triggerSyncPulse();
       }
     });
     return unsub;
   }, [user]);
 
-  // Load Monthly Budgets
+  // Load Monthly Budgets (independent of month/year change to avoid constant resubscription)
   useEffect(() => {
     if (!user) return;
     const q = query(
@@ -316,20 +318,20 @@ function Dashboard({ user }: { user: User }) {
       const bList = snapshot.docs.map(doc => doc.data() as MonthlyBudget);
       setAllBudgets(bList);
       
-      const current = bList.find(b => b.year === currentYear && b.month === currentMonth);
-      if (current) {
-        setBudget(current);
-      } else {
-        setBudget(null);
-      }
-      if (initialBudgetsLoadedRef.current) {
-        triggerSyncPulse();
-      } else {
+      if (!initialBudgetsLoadedRef.current) {
         initialBudgetsLoadedRef.current = true;
+      } else if (snapshot.docChanges().length > 0) {
+        triggerSyncPulse();
       }
     });
     return unsub;
-  }, [user, currentYear, currentMonth]);
+  }, [user]);
+
+  // Sync selected month budget
+  useEffect(() => {
+    const current = allBudgets.find(b => b.year === currentYear && b.month === currentMonth);
+    setBudget(current || null);
+  }, [allBudgets, currentYear, currentMonth]);
 
   // Calculate Aggregated Reserves
   const aggregatedReserve = useMemo(() => {
@@ -783,16 +785,23 @@ function Dashboard({ user }: { user: User }) {
                 onYearChange={setCurrentYear} 
               />
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 text-xs text-gray-500 dark:text-gray-400" title={isSyncing ? "Sincronizando..." : "Sincronizado"}>
+              <div 
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-colors duration-200 select-none ${
+                  isSyncing 
+                    ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' 
+                    : 'bg-white dark:bg-[#121214] border-gray-200 dark:border-white/5 text-gray-500 dark:text-gray-400'
+                }`} 
+                title={isSyncing ? "Salvando alterações..." : "Todas as alterações estão salvas na nuvem"}
+              >
                 {isSyncing ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" />
-                      <span className="text-[11px] font-medium hidden sm:inline text-emerald-600 dark:text-emerald-400">Sync</span>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500 shrink-0" />
+                      <span className="text-[11px] font-medium hidden sm:inline text-emerald-600 dark:text-emerald-400">Salvando...</span>
                     </>
                 ) : (
                     <>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-[11px] font-medium hidden sm:inline">Sincronizado</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="text-[11px] font-medium hidden sm:inline text-gray-500 dark:text-gray-400">Sincronizado</span>
                     </>
                 )}
               </div>

@@ -3,7 +3,7 @@ import { Transaction } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, deleteDoc, collection, addDoc, writeBatch } from 'firebase/firestore';
 import { Trash2, Pencil, Plus, Check, X, Search, Filter, RefreshCw, Copy } from 'lucide-react';
-import { Button, Chip } from '@heroui/react';
+import { Button, Chip } from './ui';
 import { QuickAddTransaction } from './QuickAddTransaction';
 
 export function TransactionsTab({ userId, transactions, onEdit, userSettings }: { userId?: string, transactions: Transaction[], onEdit?: (t: Transaction) => void, userSettings?: import('../types').UserSettings }) {
