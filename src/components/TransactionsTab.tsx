@@ -3,6 +3,7 @@ import { Transaction } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, deleteDoc, collection, addDoc, writeBatch } from 'firebase/firestore';
 import { Trash2, Pencil, Plus, Check, X, Search, Filter, RefreshCw, Copy } from 'lucide-react';
+import { Button, Chip } from '@heroui/react';
 import { QuickAddTransaction } from './QuickAddTransaction';
 
 export function TransactionsTab({ userId, transactions, onEdit, userSettings }: { userId?: string, transactions: Transaction[], onEdit?: (t: Transaction) => void, userSettings?: import('../types').UserSettings }) {
@@ -138,7 +139,42 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
       
       if (searchTerm) {
         const searchLow = searchTerm.toLowerCase();
-        if (!t.description.toLowerCase().includes(searchLow) && !t.category.toLowerCase().includes(searchLow)) return false;
+        const cleanAmount = searchLow.replace(/^r\$\s*|^r\s*|^\$\s*/i, '').replace(/\s+/g, '');
+        const queryWithDot = cleanAmount.replace(',', '.');
+        const queryWithComma = cleanAmount.replace('.', ',');
+        const queryDigitsOnly = cleanAmount.replace(/[.,]/g, '');
+
+        const matchesText = 
+          t.description.toLowerCase().includes(searchLow) || 
+          t.category.toLowerCase().includes(searchLow) ||
+          (t.paymentMethod && t.paymentMethod.toLowerCase().includes(searchLow)) ||
+          (t.card && t.card.toLowerCase().includes(searchLow));
+
+        let matchesAmount = false;
+        if (cleanAmount) {
+          const amount = t.amount;
+          const amountStr = amount.toString();
+          const amountFixed = amount.toFixed(2);
+          const amountPtBR = amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+          const amountPtBRClean = amountPtBR.replace(/\./g, '');
+          const amountPtBRDot = amountPtBRClean.replace(',', '.');
+          const amountInteger = Math.floor(amount).toString();
+
+          matchesAmount = (
+            amountStr.includes(cleanAmount) ||
+            amountFixed.includes(cleanAmount) ||
+            amountFixed.includes(queryWithDot) ||
+            amountPtBR.includes(cleanAmount) ||
+            amountPtBR.includes(queryWithComma) ||
+            amountPtBRClean.includes(cleanAmount) ||
+            amountPtBRClean.includes(queryWithComma) ||
+            amountPtBRDot.includes(queryWithDot) ||
+            (queryDigitsOnly ? amountInteger.includes(queryDigitsOnly) : false) ||
+            (queryDigitsOnly.length >= 2 && amountPtBRClean.replace(',', '').includes(queryDigitsOnly))
+          );
+        }
+
+        if (!matchesText && !matchesAmount) return false;
       }
       
       if (filterMonth === 'custom') {
@@ -279,14 +315,14 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{t.description}</span>
                         {t.installments ? (
-                          <span className="text-[10px] bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-mono">
+                          <Chip size="sm" variant="secondary" className="text-[10px] h-4.5 px-1.5 font-mono">
                             {t.installmentNumber}/{t.installments}
-                          </span>
+                          </Chip>
                         ) : null}
                         {t.status === 'pending' && (
-                          <span className="text-[10px] bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                          <Chip size="sm" variant="soft" color="warning" className="text-[10px] h-4.5 px-1.5 font-medium">
                             Pendente
-                          </span>
+                          </Chip>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-gray-400">
@@ -379,20 +415,24 @@ export function TransactionsTab({ userId, transactions, onEdit, userSettings }: 
             )}
 
             <div className="flex gap-2 justify-end mt-2">
-              <button 
-                onClick={() => setTransactionToDelete(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50"
+              <Button 
+                onPress={() => setTransactionToDelete(null)}
+                isDisabled={isDeleting}
+                variant="ghost"
+                size="sm"
+                className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
               >
                 Cancelar
-              </button>
-              <button 
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-colors disabled:opacity-50"
+              </Button>
+              <Button 
+                onPress={confirmDelete}
+                isDisabled={isDeleting}
+                variant="danger"
+                size="sm"
+                className="px-4 py-2 text-xs font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-colors"
               >
                 {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

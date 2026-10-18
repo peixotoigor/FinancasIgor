@@ -3,6 +3,7 @@ import { MonthlyBudget } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc, query, collection, where, onSnapshot } from 'firebase/firestore';
 import { PiggyBank, Briefcase, ArrowDownCircle, ArrowUpCircle, Landmark, Trash2 } from 'lucide-react';
+import { Button, Card, CardHeader, CardContent, Chip } from '@heroui/react';
 import { WithdrawalsManager } from './WithdrawalsManager';
 
 export function ReservesTab({ userId, year }: { userId: string, year: number }) {
@@ -172,17 +173,19 @@ export function ReservesTab({ userId, year }: { userId: string, year: number }) 
 
          <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar mt-4 border-t border-gray-100 dark:border-white/5 pt-4">
             {months.map(m => (
-               <button 
+               <Button 
                   key={m}
-                  onClick={() => setActiveMonth(m)} 
-                  className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap min-w-[70px] flex-1 sm:flex-none text-center cursor-pointer ${
+                  onPress={() => setActiveMonth(m)} 
+                  size="sm"
+                  variant={activeMonth === m ? 'primary' : 'outline'}
+                  className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all whitespace-nowrap min-w-[70px] flex-1 sm:flex-none text-center ${
                     activeMonth === m 
                      ? 'bg-emerald-500 text-white shadow-sm' 
                      : 'bg-gray-50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-white/5'
                   }`}
                >
                   {new Date(0, m - 1).toLocaleString('pt-BR', { month: 'short' })}
-               </button>
+               </Button>
             ))}
          </div>
       </div>

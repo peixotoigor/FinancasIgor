@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp } from 'firebase/app';
@@ -20,7 +19,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(express.json());
   app.post("/api/ai/forecast", async (req, res) => {
@@ -971,6 +970,7 @@ ${recentTransactions.slice(0, 10).map(t => `[ID: ${t.id}] - ${t.desc} | R$ ${t.a
 
   // Vite middleware setup
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

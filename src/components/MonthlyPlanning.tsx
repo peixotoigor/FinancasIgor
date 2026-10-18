@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Plus, Trash2, PiggyBank, Calculator, HelpCircle, PencilLine, X, Send } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2, Calculator, HelpCircle, PencilLine, X, Send, Repeat, CalendarClock, CheckCircle2 } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import type { MonthlyBudget, PlannedExpense, Transaction, UserSettings } from '../types';
+import { Button, Card, Chip } from '@heroui/react';
 
 interface MonthlyPlanningProps {
   userId: string;
@@ -56,7 +57,6 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
       budget.fixedExpenses!.forEach(fixedExp => {
         if (processed.includes(fixedExp.id)) return;
 
-        // Check if a transaction exists for this fixed expense in the current month (for legacy before processed flag)
         const exists = transactions.some(t => 
           t.type === 'expense' && 
           t.description.trim().toLowerCase() === fixedExp.description.trim().toLowerCase()
@@ -64,10 +64,8 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
 
         if (!exists) {
           hasChanges = true;
-          // Use deterministic ID to prevent duplicates
           const newTxRef = doc(db, 'transactions', `auto_${userId}_${year}_${month}_${fixedExp.id}`);
           
-          // Use the 1st day of the viewed month, or today if it's the current real month
           const now = new Date();
           let txDate = new Date(year, month - 1, 1).getTime();
           if (now.getFullYear() === year && now.getMonth() + 1 === month) {
@@ -177,7 +175,6 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
     }
   };
 
-  
   const handlePostPlanned = async (expense: PlannedExpense) => {
     setIsSaving(true);
     try {
@@ -386,95 +383,139 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
   };
 
   return (
-    <div className="glass-card bg-white dark:bg-[#121214] border border-gray-100 dark:border-white/5 rounded-2xl shadow-sm mb-6 overflow-hidden font-sans transition-all">
+    <Card className="glass-card bg-white dark:bg-[#121214] border border-gray-200/80 dark:border-white/10 rounded-2xl shadow-sm mb-6 overflow-hidden transition-all relative">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500/0 via-indigo-500/50 to-indigo-500/0" />
+
+      {/* Accordion trigger header */}
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 lg:p-5 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs">
+          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold shrink-0">
             <Calculator className="w-4 h-4" />
           </div>
-          <div className="text-left">
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white">Planejamento do Mês</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Gastos fixos recorrentes e despesas previstas ({plannedExpenses.length + fixedExpenses.length} itens)</p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-gray-900 dark:text-white">Planejamento do Mês</h3>
+              <Chip size="sm" variant="soft" color="primary" className="text-[10px] font-mono h-4.5 px-1.5 font-bold">
+                {plannedExpenses.length + fixedExpenses.length} compromissos
+              </Chip>
+            </div>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">Gastos fixos recorrentes e despesas previstas</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3">
           {(plannedExpenses.length > 0 || fixedExpenses.length > 0) && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hidden sm:block">
-              {formatCurrency(totalBoth)}
-            </span>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-[10px] uppercase font-bold text-gray-400">Total Previsto</span>
+              <span className="text-xs font-bold font-mono text-gray-900 dark:text-white">
+                {formatCurrency(totalBoth)}
+              </span>
+            </div>
           )}
-          {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500">
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
         </div>
       </button>
 
+      {/* Accordion Body */}
       {isExpanded && (
-        <div className="p-4 lg:p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-transparent">
-          <div className="flex items-center gap-2 mb-6 bg-indigo-50/50 dark:bg-indigo-500/5 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10">
-            <HelpCircle className="w-4 h-4 shrink-0 text-indigo-500" />
-            <p className="text-xs text-indigo-950 dark:text-gray-300 leading-relaxed">
-              Adicione despesas fixas recorrentes e gastos variáveis programados para auditar seus compromissos no ciclo.
-            </p>
+        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50/40 dark:bg-transparent">
+          {/* Top KPI chips */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-white dark:bg-[#1A1A1D] p-3 rounded-xl border border-gray-200/70 dark:border-white/5 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-gray-400 block">Gastos Fixos</span>
+                <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">{formatCurrency(totalFixed)}</span>
+              </div>
+              <Chip size="sm" variant="secondary" className="text-[10px] h-5">{fixedExpenses.length} itens</Chip>
+            </div>
+
+            <div className="bg-white dark:bg-[#1A1A1D] p-3 rounded-xl border border-gray-200/70 dark:border-white/5 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-gray-400 block">Gastos Variáveis</span>
+                <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">{formatCurrency(totalPlanned)}</span>
+              </div>
+              <Chip size="sm" variant="secondary" className="text-[10px] h-5">{plannedExpenses.length} itens</Chip>
+            </div>
+
+            <div className="bg-white dark:bg-[#1A1A1D] p-3 rounded-xl border border-gray-200/70 dark:border-white/5 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-500 block">Total Comprometido</span>
+                <span className="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(totalBoth)}</span>
+              </div>
+              <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Gastos Fixos */}
+            {/* Gastos Fixos Column */}
             <div className="flex flex-col gap-3">
-               <div>
-                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Gastos Fixos</h4>
-                 <p className="text-[11px] text-gray-400">Obrigações mensais (aluguel, condomínio, internet)</p>
+               <div className="flex items-center justify-between">
+                 <div>
+                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-1.5">
+                     <Repeat className="w-3.5 h-3.5 text-indigo-500" />
+                     <span>Gastos Fixos</span>
+                   </h4>
+                   <p className="text-[11px] text-gray-400">Obrigações regulares (aluguel, condomínio, internet)</p>
+                 </div>
                </div>
                
-               <form onSubmit={handleAddFixed} className="flex flex-col gap-2 mb-2">
+               <form onSubmit={handleAddFixed} className="bg-white dark:bg-[#1A1A1D] border border-gray-200/80 dark:border-white/5 rounded-2xl p-3.5 shadow-2xs flex flex-col gap-2.5">
                  <div className="flex gap-2">
                    <input
                      type="text"
-                     placeholder="Ex: Aluguel"
+                     placeholder="Descrição (ex: Aluguel)"
                      value={fixedDesc}
                      onChange={(e) => setFixedDesc(e.target.value)}
-                     className="flex-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors"
+                     className="flex-1 bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors"
                      required
                    />
                    <div className="relative w-[110px] sm:w-[130px]">
-                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
+                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[11px] font-bold">R$</span>
                      <input
                        type="text"
                        placeholder="0,00"
                        value={fixedAmt}
                        onChange={(e) => setFixedAmt(formatAmountInput(e.target.value))}
-                       className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2 py-2 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+                       className="w-full bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2.5 py-2 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-indigo-500 text-right"
                        required
                      />
                    </div>
                    {editingFixedId && (
-                     <button
+                     <Button
                        type="button"
-                       onClick={cancelEditFixed}
-                       className="bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
-                       title="Cancelar Edição"
+                       onPress={cancelEditFixed}
+                       variant="ghost"
+                       size="sm"
+                       className="p-2 rounded-xl text-gray-500 shrink-0"
+                       title="Cancelar"
                      >
-                       <X className="w-4 h-4" />
-                     </button>
+                       <X className="w-3.5 h-3.5" />
+                     </Button>
                    )}
-                   <button
+                   <Button
                      type="submit"
-                     disabled={isSaving || !fixedDesc || !fixedAmt}
-                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 shrink-0"
+                     isDisabled={isSaving || !fixedDesc || !fixedAmt}
+                     variant="primary"
+                     size="sm"
+                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl shrink-0"
                      title={editingFixedId ? "Salvar Edição" : "Adicionar Gasto Fixo"}
                    >
-                     {editingFixedId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                   </button>
+                     {editingFixedId ? <PencilLine className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                   </Button>
                  </div>
 
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                   <select value={fixedCategory} onChange={(e) => setFixedCategory(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                   <select value={fixedCategory} onChange={(e) => setFixedCategory(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none cursor-pointer">
                      <option value="">Categoria...</option>
                      {userSettings?.categories?.map(c => <option key={c} value={c}>{c}</option>)}
                    </select>
-                   <select value={fixedPaymentMethod} onChange={(e) => setFixedPaymentMethod(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                   <select value={fixedPaymentMethod} onChange={(e) => setFixedPaymentMethod(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none cursor-pointer">
                      <option value="">Método...</option>
                      <option value="Crédito">Crédito</option>
                      <option value="Pix">Pix</option>
@@ -482,33 +523,40 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      <option value="Dinheiro">Dinheiro</option>
                    </select>
                    {(fixedPaymentMethod === 'Crédito' || fixedPaymentMethod === 'Débito') && (
-                     <select value={fixedCard} onChange={(e) => setFixedCard(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                     <select value={fixedCard} onChange={(e) => setFixedCard(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none cursor-pointer">
                        <option value="">Cartão...</option>
                        {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                    )}
-                   <input type="text" placeholder="Conta" value={fixedAccount} onChange={(e) => setFixedAccount(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none placeholder:text-gray-400" />
+                   <input type="text" placeholder="Conta / Banco" value={fixedAccount} onChange={(e) => setFixedAccount(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none placeholder:text-gray-400" />
                  </div>
                  
-                 <label className="flex items-center gap-2 mt-1 cursor-pointer w-max text-[11px] text-gray-500 dark:text-gray-400">
+                 <label className="flex items-center gap-2 mt-0.5 cursor-pointer w-max text-[11px] text-gray-600 dark:text-gray-400 select-none">
                    <input type="checkbox" checked={fixedIsRecurring} onChange={e => setFixedIsRecurring(e.target.checked)} className="w-3.5 h-3.5 text-indigo-500 rounded border-gray-300" />
-                   <span>Recorrente nos próximos ciclos</span>
+                   <span>Replicar automaticamente nos ciclos futuros</span>
                  </label>
                </form>
                
                {fixedExpenses.length > 0 ? (
-                 <div className="space-y-1.5 text-xs">
+                 <div className="space-y-1.5 text-xs max-h-[280px] overflow-y-auto pr-1">
                    {fixedExpenses.map(expense => (
-                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl hover:border-gray-200 transition-colors">
-                       <span className="font-semibold text-gray-800 dark:text-gray-200 truncate pr-2">{expense.description}</span>
+                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl hover:border-indigo-500/30 transition-all group">
+                       <div className="flex flex-col min-w-0 pr-2">
+                         <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">{expense.description}</span>
+                         <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                           <span>{expense.category || 'Geral'}</span>
+                           {expense.paymentMethod && <span>· {expense.paymentMethod}</span>}
+                           {expense.isRecurring !== false && <span className="text-indigo-500">· Recorrente</span>}
+                         </span>
+                       </div>
                        <div className="flex items-center gap-2 shrink-0">
-                         <span className="font-bold font-mono text-gray-900 dark:text-white mr-2">
+                         <span className="font-bold font-mono text-gray-900 dark:text-white mr-1 tabular-nums">
                            {formatCurrency(expense.amount)}
                          </span>
                          <button 
                            onClick={() => startEditFixed(expense)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-indigo-500 p-1 transition-colors"
+                           className="text-gray-400 hover:text-indigo-500 p-1 transition-colors opacity-0 group-hover:opacity-100"
                            title="Editar"
                          >
                            <PencilLine className="w-3.5 h-3.5" />
@@ -516,7 +564,7 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                          <button 
                            onClick={() => handleRemoveFixed(expense.id)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-red-500 p-1 transition-colors"
+                           className="text-gray-400 hover:text-rose-500 p-1 transition-colors opacity-0 group-hover:opacity-100"
                            title="Remover"
                          >
                            <Trash2 className="w-3.5 h-3.5" />
@@ -524,7 +572,7 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                        </div>
                      </div>
                    ))}
-                   <div className="flex justify-between items-center pt-2 px-1 text-xs">
+                   <div className="flex justify-between items-center pt-2 px-1 text-xs border-t border-gray-100 dark:border-white/5">
                      <span className="uppercase font-semibold text-gray-400 text-[10px]">Subtotal Fixos:</span>
                      <span className="font-mono font-bold text-gray-900 dark:text-white">
                        {formatCurrency(totalFixed)}
@@ -532,64 +580,75 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                    </div>
                  </div>
                ) : (
-                 <div className="text-center py-4 text-xs text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-xl">Nenhum gasto fixo registrado.</div>
+                 <div className="text-center py-6 text-xs text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-xl">
+                   Nenhum gasto fixo cadastrado para este mês.
+                 </div>
                )}
             </div>
 
-            {/* Gastos Variáveis */}
+            {/* Gastos Variáveis Column */}
             <div className="flex flex-col gap-3">
-               <div>
-                 <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Gastos Variáveis</h4>
-                 <p className="text-[11px] text-gray-400">Gastos eventuais previstos para este mês</p>
+               <div className="flex items-center justify-between">
+                 <div>
+                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-1.5">
+                     <CalendarClock className="w-3.5 h-3.5 text-indigo-500" />
+                     <span>Despesas Previstas</span>
+                   </h4>
+                   <p className="text-[11px] text-gray-400">Gastos eventuais ou orçamentos previstos para o ciclo</p>
+                 </div>
                </div>
                
-               <form onSubmit={handleAddPlanned} className="flex flex-col gap-2 mb-2">
-                 <div className="flex gap-2 items-start">
+               <form onSubmit={handleAddPlanned} className="bg-white dark:bg-[#1A1A1D] border border-gray-200/80 dark:border-white/5 rounded-2xl p-3.5 shadow-2xs flex flex-col gap-2.5">
+                 <div className="flex gap-2">
                    <input
                      type="text"
-                     placeholder="Ex: Presente Aniversário"
+                     placeholder="Descrição (ex: Manutenção Carro)"
                      value={plannedDesc}
                      onChange={(e) => setPlannedDesc(e.target.value)}
-                     className="flex-1 bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors"
+                     className="flex-1 bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-indigo-500 transition-colors"
                      required
                    />
                    <div className="relative w-[110px] sm:w-[130px]">
-                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
+                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[11px] font-bold">R$</span>
                      <input
                        type="text"
                        placeholder="0,00"
                        value={plannedAmt}
                        onChange={(e) => setPlannedAmt(formatAmountInput(e.target.value))}
-                       className="w-full bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2 py-2 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-indigo-500"
+                       className="w-full bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl pl-8 pr-2.5 py-2 text-xs font-mono font-bold text-gray-900 dark:text-white outline-none focus:border-indigo-500 text-right"
                        required
                      />
                    </div>
                    {editingPlannedId && (
-                     <button
+                     <Button
                        type="button"
-                       onClick={cancelEditPlanned}
-                       className="bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 p-2 rounded-xl transition-colors shrink-0"
-                       title="Cancelar Edição"
+                       onPress={cancelEditPlanned}
+                       variant="ghost"
+                       size="sm"
+                       className="p-2 rounded-xl text-gray-500 shrink-0"
+                       title="Cancelar"
                      >
-                       <X className="w-4 h-4" />
-                     </button>
+                       <X className="w-3.5 h-3.5" />
+                     </Button>
                    )}
-                   <button
+                   <Button
                      type="submit"
-                     disabled={isSaving || !plannedDesc || !plannedAmt}
-                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl transition-colors disabled:opacity-50 shrink-0"
+                     isDisabled={isSaving || !plannedDesc || !plannedAmt}
+                     variant="primary"
+                     size="sm"
+                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl shrink-0"
                      title={editingPlannedId ? "Salvar Edição" : "Adicionar Gasto Previsto"}
                    >
-                     {editingPlannedId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                   </button>
+                     {editingPlannedId ? <PencilLine className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                   </Button>
                  </div>
                  
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                   <select value={plannedCategory} onChange={(e) => setPlannedCategory(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                   <select value={plannedCategory} onChange={(e) => setPlannedCategory(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none cursor-pointer">
                      <option value="">Categoria...</option>
                      {userSettings?.categories?.map(c => <option key={c} value={c}>{c}</option>)}
                    </select>
-                   <select value={plannedPaymentMethod} onChange={(e) => setPlannedPaymentMethod(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                   <select value={plannedPaymentMethod} onChange={(e) => setPlannedPaymentMethod(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none cursor-pointer">
                      <option value="">Método...</option>
                      <option value="Crédito">Crédito</option>
                      <option value="Pix">Pix</option>
@@ -597,36 +656,46 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      <option value="Dinheiro">Dinheiro</option>
                    </select>
                    {(plannedPaymentMethod === 'Crédito' || plannedPaymentMethod === 'Débito') && (
-                     <select value={plannedCard} onChange={(e) => setPlannedCard(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none">
+                     <select value={plannedCard} onChange={(e) => setPlannedCard(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none cursor-pointer">
                        <option value="">Cartão...</option>
                        {userSettings?.cards?.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                    )}
-                   <input type="text" placeholder="Conta" value={plannedAccount} onChange={(e) => setPlannedAccount(e.target.value)} className="bg-white dark:bg-[#1A1A1D] border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none placeholder:text-gray-400" />
+                   <input type="text" placeholder="Conta / Banco" value={plannedAccount} onChange={(e) => setPlannedAccount(e.target.value)} className="bg-gray-50/70 dark:bg-[#0A0A0B]/80 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[11px] text-gray-900 dark:text-white outline-none placeholder:text-gray-400" />
                  </div>
                </form>
 
                {plannedExpenses.length > 0 ? (
-                 <div className="space-y-1.5 text-xs">
+                 <div className="space-y-1.5 text-xs max-h-[280px] overflow-y-auto pr-1">
                    {plannedExpenses.map(expense => (
-                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl hover:border-gray-200 transition-colors">
-                       <span className="font-semibold text-gray-800 dark:text-gray-200 truncate pr-2">{expense.description}</span>
+                     <div key={expense.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-xl hover:border-indigo-500/30 transition-all group">
+                       <div className="flex flex-col min-w-0 pr-2">
+                         <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">{expense.description}</span>
+                         <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                           <span>{expense.category || 'Geral'}</span>
+                           {expense.paymentMethod && <span>· {expense.paymentMethod}</span>}
+                         </span>
+                       </div>
                        <div className="flex items-center gap-2 shrink-0">
-                         <span className="font-bold font-mono text-gray-900 dark:text-white mr-2">
+                         <span className="font-bold font-mono text-gray-900 dark:text-white mr-1 tabular-nums">
                            {formatCurrency(expense.amount)}
                          </span>
                          <button 
                            onClick={() => handlePostPlanned(expense)}
                            disabled={isSaving || (budget?.processedPlannedExpenses || []).includes(expense.id)}
                            className={`p-1 rounded-lg border transition-colors ${(budget?.processedPlannedExpenses || []).includes(expense.id) ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-not-allowed' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:bg-emerald-500 hover:text-white'}`}
-                           title={(budget?.processedPlannedExpenses || []).includes(expense.id) ? "Já lançado no mês" : "Lançar no mês"}
+                           title={(budget?.processedPlannedExpenses || []).includes(expense.id) ? "Já lançado no mês" : "Lançar no mês como pendente"}
                          >
-                           <Send className="w-3.5 h-3.5" />
+                           {(budget?.processedPlannedExpenses || []).includes(expense.id) ? (
+                             <CheckCircle2 className="w-3.5 h-3.5" />
+                           ) : (
+                             <Send className="w-3.5 h-3.5" />
+                           )}
                          </button>
                          <button 
                            onClick={() => startEditPlanned(expense)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-indigo-500 p-1 transition-colors"
+                           className="text-gray-400 hover:text-indigo-500 p-1 transition-colors opacity-0 group-hover:opacity-100"
                            title="Editar"
                          >
                            <PencilLine className="w-3.5 h-3.5" />
@@ -634,7 +703,7 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                          <button 
                            onClick={() => handleRemovePlanned(expense.id)}
                            disabled={isSaving}
-                           className="text-gray-400 hover:text-red-500 p-1 transition-colors"
+                           className="text-gray-400 hover:text-rose-500 p-1 transition-colors opacity-0 group-hover:opacity-100"
                            title="Remover"
                          >
                            <Trash2 className="w-3.5 h-3.5" />
@@ -642,7 +711,7 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                        </div>
                      </div>
                    ))}
-                   <div className="flex justify-between items-center pt-2 px-1 text-xs">
+                   <div className="flex justify-between items-center pt-2 px-1 text-xs border-t border-gray-100 dark:border-white/5">
                      <span className="uppercase font-semibold text-gray-400 text-[10px]">Subtotal Variáveis:</span>
                      <span className="font-mono font-bold text-gray-900 dark:text-white">
                        {formatCurrency(totalPlanned)}
@@ -650,21 +719,23 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                    </div>
                  </div>
                ) : (
-                 <div className="text-center py-4 text-xs text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-xl">Nenhum gasto variável registrado.</div>
+                 <div className="text-center py-6 text-xs text-gray-400 border border-dashed border-gray-200 dark:border-white/10 rounded-xl">
+                   Nenhuma despesa prevista cadastrada para este mês.
+                 </div>
                )}
             </div>
 
           </div>
           
           {(plannedExpenses.length > 0 || fixedExpenses.length > 0) && (
-             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-between items-center px-2">
-                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Projetado:</span>
+             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-between items-center px-1">
+                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Projetado do Ciclo:</span>
                  <span className="text-base font-bold font-mono text-gray-900 dark:text-white">{formatCurrency(totalBoth)}</span>
              </div>
           )}
 
         </div>
       )}
-    </div>
+    </Card>
   );
 }

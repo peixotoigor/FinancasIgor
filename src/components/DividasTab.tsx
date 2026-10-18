@@ -3,6 +3,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, addDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { Plus, Trash2, TrendingDown, Calendar, Percent, Landmark, PencilLine, X, Bot, Send, ArrowRight, BrainCircuit, History, Undo2, Save } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { Button, Card, CardHeader, CardContent, Chip } from '@heroui/react';
 import type { Debt, UserSettings, Transaction } from '../types';
 
 interface DividasTabProps {
@@ -443,22 +444,26 @@ const handlePostPayment = async (e: React.FormEvent) => {
           
           <div className="flex justify-end gap-2 pt-2">
             {editingId && (
-              <button
+              <Button
                 type="button"
-                onClick={cancelEdit}
+                onPress={cancelEdit}
+                variant="ghost"
+                size="sm"
                 className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
               >
                 Cancelar
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="submit"
-              disabled={isSaving || !name || !amount}
-              className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50 text-sm font-medium"
+              isDisabled={isSaving || !name || !amount}
+              variant="danger"
+              size="sm"
+              className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl transition-colors text-sm font-medium"
             >
               {editingId ? <PencilLine className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               {editingId ? 'Salvar Alterações' : 'Adicionar Dívida'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -474,7 +479,7 @@ const handlePostPayment = async (e: React.FormEvent) => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {debts.map(debt => (
-              <div key={debt.id} className="glass-card glass-card-hover bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:border-gray-200 dark:hover:border-white/10 transition-all group">
+              <Card key={debt.id} className="glass-card glass-card-hover bg-white dark:bg-[#1A1A1D] border border-gray-100 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:border-gray-200 dark:hover:border-white/10 transition-all group">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#0A0A0B] flex items-center justify-center shrink-0">
@@ -545,7 +550,7 @@ const handlePostPayment = async (e: React.FormEvent) => {
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}

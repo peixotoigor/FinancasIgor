@@ -3,6 +3,7 @@ import { Transaction, UserSettings } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, collection, updateDoc, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { X, Plus, Trash2, Pencil, MoreVertical } from 'lucide-react';
+import { Button } from '@heroui/react';
 
 export function TransactionModal({ isOpen, onClose, userId, userSettings, initialData, initialType }: { isOpen: boolean, onClose: () => void, userId: string, userSettings: UserSettings, initialData?: Transaction | null, initialType?: 'expense' | 'income' }) {
   const [type, setType] = useState<'income' | 'expense' | 'transfer'>(initialType || 'expense');
@@ -454,12 +455,14 @@ export function TransactionModal({ isOpen, onClose, userId, userSettings, initia
              </div>
            )}
 
-           <button 
-             disabled={isSubmitting} 
-             className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl py-3.5 font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
+           <Button 
+             type="submit"
+             isDisabled={isSubmitting} 
+             variant="primary"
+             className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl py-3.5 font-semibold text-sm shadow-sm transition-all"
            >
              {isSubmitting ? 'Salvando...' : (initialData?.id ? 'Salvar Alterações' : 'Salvar Registro')}
-           </button>
+           </Button>
         </form>
       </div>
     </div>
