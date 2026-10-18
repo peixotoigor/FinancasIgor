@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { auth, googleProvider, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Transaction } from './types';
@@ -101,7 +101,19 @@ function Dashboard({ user }: { user: User }) {
   const [isLiquidGlass, setIsLiquidGlass] = useState(() => {
     return localStorage.getItem('liquid_glass') !== 'false';
   });
-  const [syncState, setSyncState] = useState({ transactions: false, budgets: false, settings: false, inbox: false });
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialSettingsLoadedRef = useRef(false);
+  const initialTxsLoadedRef = useRef(false);
+  const initialBudgetsLoadedRef = useRef(false);
+
+  const triggerSyncPulse = useCallback(() => {
+    setIsSyncing(true);
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => {
+      setIsSyncing(false);
+    }, 1200);
+  }, []);
   const [rightSidebarWidth, setRightSidebarWidth] = useState(380);
   const [draggedTxIdx, setDraggedTxIdx] = useState<number | null>(null);
   const [dragOverTxIdx, setDragOverTxIdx] = useState<number | null>(null);
@@ -231,7 +243,11 @@ function Dashboard({ user }: { user: User }) {
         };
         setDoc(doc(db, 'user_settings', user.uid), initialSettings);
       }
-      setSyncState(s => ({ ...s, settings: true }));
+      if (initialSettingsLoadedRef.current) {
+        triggerSyncPulse();
+      } else {
+        initialSettingsLoadedRef.current = true;
+      }
     });
     return unsub;
   }, [user]);
@@ -280,7 +296,11 @@ function Dashboard({ user }: { user: User }) {
       txs.sort((a, b) => b.date - a.date);
       setTransactions(txs);
       setTransactionsLoaded(true);
-      setSyncState(s => ({ ...s, transactions: true }));
+      if (initialTxsLoadedRef.current) {
+        triggerSyncPulse();
+      } else {
+        initialTxsLoadedRef.current = true;
+      }
     });
     return unsub;
   }, [user]);
@@ -302,7 +322,11 @@ function Dashboard({ user }: { user: User }) {
       } else {
         setBudget(null);
       }
-      setSyncState(s => ({ ...s, budgets: true }));
+      if (initialBudgetsLoadedRef.current) {
+        triggerSyncPulse();
+      } else {
+        initialBudgetsLoadedRef.current = true;
+      }
     });
     return unsub;
   }, [user, currentYear, currentMonth]);
@@ -759,16 +783,16 @@ function Dashboard({ user }: { user: User }) {
                 onYearChange={setCurrentYear} 
               />
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 text-xs text-gray-500 dark:text-gray-400" title={Object.values(syncState).some(Boolean) ? "Sincronizando..." : "Sincronizado"}>
-                {Object.values(syncState).some(Boolean) ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-[#121214] border border-gray-200 dark:border-white/5 text-xs text-gray-500 dark:text-gray-400" title={isSyncing ? "Sincronizando..." : "Sincronizado"}>
+                {isSyncing ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" />
-                      <span className="text-[11px] font-medium hidden sm:inline">Sync</span>
+                      <span className="text-[11px] font-medium hidden sm:inline text-emerald-600 dark:text-emerald-400">Sync</span>
                     </>
                 ) : (
                     <>
-                      <Cloud className="w-3.5 h-3.5 text-gray-400" />
-                      <span className="text-[11px] font-medium hidden sm:inline">Online</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-[11px] font-medium hidden sm:inline">Sincronizado</span>
                     </>
                 )}
               </div>

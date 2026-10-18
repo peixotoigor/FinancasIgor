@@ -398,7 +398,7 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-xs uppercase tracking-wider text-gray-900 dark:text-white">Planejamento do Mês</h3>
-              <Chip size="sm" variant="soft" color="primary" className="text-[10px] font-mono h-4.5 px-1.5 font-bold">
+              <Chip size="sm" variant="soft" color="accent" className="text-[10px] font-mono h-4.5 px-1.5 font-bold">
                 {plannedExpenses.length + fixedExpenses.length} compromissos
               </Chip>
             </div>
@@ -487,27 +487,23 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      />
                    </div>
                    {editingFixedId && (
-                     <Button
+                     <button
                        type="button"
-                       onPress={cancelEditFixed}
-                       variant="ghost"
-                       size="sm"
-                       className="p-2 rounded-xl text-gray-500 shrink-0"
+                       onClick={cancelEditFixed}
+                       className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
                        title="Cancelar"
                      >
                        <X className="w-3.5 h-3.5" />
-                     </Button>
+                     </button>
                    )}
-                   <Button
+                   <button
                      type="submit"
-                     isDisabled={isSaving || !fixedDesc || !fixedAmt}
-                     variant="primary"
-                     size="sm"
-                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl shrink-0"
+                     disabled={isSaving || !fixedDesc || !fixedAmt}
+                     className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white p-2 rounded-xl transition-colors shrink-0"
                      title={editingFixedId ? "Salvar Edição" : "Adicionar Gasto Fixo"}
                    >
                      {editingFixedId ? <PencilLine className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                   </Button>
+                   </button>
                  </div>
 
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -620,27 +616,23 @@ export function MonthlyPlanning({ userId, year, month, budget, transactions, tra
                      />
                    </div>
                    {editingPlannedId && (
-                     <Button
+                     <button
                        type="button"
-                       onPress={cancelEditPlanned}
-                       variant="ghost"
-                       size="sm"
-                       className="p-2 rounded-xl text-gray-500 shrink-0"
+                       onClick={cancelEditPlanned}
+                       className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
                        title="Cancelar"
                      >
                        <X className="w-3.5 h-3.5" />
-                     </Button>
+                     </button>
                    )}
-                   <Button
+                   <button
                      type="submit"
-                     isDisabled={isSaving || !plannedDesc || !plannedAmt}
-                     variant="primary"
-                     size="sm"
-                     className="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-xl shrink-0"
+                     disabled={isSaving || !plannedDesc || !plannedAmt}
+                     className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white p-2 rounded-xl transition-colors shrink-0"
                      title={editingPlannedId ? "Salvar Edição" : "Adicionar Gasto Previsto"}
                    >
                      {editingPlannedId ? <PencilLine className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                   </Button>
+                   </button>
                  </div>
                  
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
